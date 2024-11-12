@@ -1,16 +1,10 @@
 seqimpute_timing <- function(data, regr = "multinom", np = 1, nf = 0, nfi = 1, 
   npt = 1, available = TRUE, covariates = matrix(NA, nrow = 1, ncol = 1),
   time.covariates = matrix(NA, nrow = 1, ncol = 1), pastDistrib = FALSE,
-  futureDistrib = FALSE, m = 1, noise = 0, SetRNGSeed = FALSE, ParExec = TRUE, 
+  futureDistrib = FALSE, m = 1, noise = 0, SetRNGSeed = FALSE, 
+  end.impute = TRUE, ParExec = TRUE, 
   ncores = NULL, frame.radius = 0, verbose = TRUE, ...)
 {
-
-  if (sum(is.na(data)) == 0) {
-    if (verbose == TRUE) {
-      message("This dataset has no missing values!")
-    }
-    return(data)
-  }
 
   rownamesDataset <- rownames(data)
   nrowsDataset <- nrow(data)
@@ -137,7 +131,7 @@ seqimpute_timing <- function(data, regr = "multinom", np = 1, nf = 0, nfi = 1,
         frame.radius = frame.radius, ...)
     }
     # 5. Imputing terminal NAs --------------------------------------------
-    if ((npt != 0) & (dataOD$MaxTermGapSize != 0)) {
+    if (end.impute == TRUE & (npt != 0) & (dataOD$MaxTermGapSize != 0)) {
       # we only impute the terminal
       # gaps if npt > 0
       if (verbose == TRUE) {

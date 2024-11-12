@@ -4,30 +4,41 @@
 \alias{seqmissfplot}
 \title{Plot the most common patterns of missing data.}
 \usage{
-seqmissfplot(data, var = NULL, with.complete = TRUE, ...)
+seqmissfplot(data, var = NULL, with.complete = TRUE, void.miss = TRUE, ...)
 }
 \arguments{
-\item{data}{a data.frame where missing data are coded as \code{NA} or 
-a state sequence object built with \link[TraMineR]{seqdef} function}
+\item{data}{Either a data frame containing sequences of a categorical 
+variable, where missing data are coded as \code{NA}, or a state sequence 
+object created using the \link[TraMineR]{seqdef} function.}
 
-\item{var}{the list of columns containing the trajectories. 
-Default is NULL, i.e. all the columns.}
+\item{var}{A vector specifying the columns of the dataset 
+that contain the trajectories. Default is \code{NULL}, meaning all columns 
+are used.}
 
-\item{with.complete}{a logical stating if complete trajectories 
-should be included or not in the plot}
+\item{with.complete}{Logical, if \code{TRUE}, complete trajectories 
+will be included in the plot.}
 
-\item{...}{parameters to be passed to the \link[TraMineR]{seqfplot} function}
+\item{void.miss}{Logical, if \code{TRUE}, treats void elements as 
+missing values. Applies only to state sequence objects created with 
+\link[TraMineR]{seqdef}. Note that the default behavior of \code{seqdef} 
+is to treat missing data at the end of sequences as void elements.}
+
+\item{...}{Additional parameters passed to the \link[TraMineR]{seqfplot} 
+function.}
 }
 \description{
-Plot function that renders the most frequent patterns of missing data. This
-function is based on the \link[TraMineR]{seqfplot} function.
+This function plots the most frequent patterns of missing data, based on the 
+\link[TraMineR]{seqfplot} function.
 }
 \details{
-This plot function is based on the \link[TraMineR]{seqfplot} function. 
-To see which arguments can be changed, see the \link[TraMineR]{seqfplot} 
-help. In particular, the number of most frequent 
-patterns to be plotted can be changed with the argument \code{idxs}. By 
-default, the 10 most frequent patterns are plotted.
+This plot function is based on the \link[TraMineR]{seqfplot} function, 
+allowing users to visualize patterns of missing data within sequences. 
+For details on additional customizable arguments, see the 
+\link[TraMineR]{seqfplot} documentation. 
+
+By default, this function plots the 10 most frequent patterns. The number 
+of patterns to be plotted can be adjusted using the \code{idxs} argument 
+in \code{seqfplot}.
 }
 \examples{
 # Plot the 10 most common patterns of missing data
@@ -43,6 +54,7 @@ seqmissfplot(gameadd, var=1:4, with.missing = FALSE)
 # complete trajectories
 
 seqmissfplot(gameadd, var=1:4, with.missing = FALSE, idxs = 1:5)
+
 
 }
 \author{

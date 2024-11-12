@@ -1,25 +1,36 @@
 #' Plot the most common patterns of missing data.
 #' 
 #' @description
-#' Plot function that renders the most frequent patterns of missing data. This
-#' function is based on the \link[TraMineR]{seqfplot} function. 
+#' This function plots the most frequent patterns of missing data, based on the 
+#' \link[TraMineR]{seqfplot} function.
 #' 
-#'
-#' @param data a data.frame where missing data are coded as \code{NA} or 
-#' a state sequence object built with \link[TraMineR]{seqdef} function
-#' @param var the list of columns containing the trajectories. 
-#' Default is NULL, i.e. all the columns. 
-#' @param with.complete a logical stating if complete trajectories 
-#' should be included or not in the plot
-#'
-#' @param ... parameters to be passed to the \link[TraMineR]{seqfplot} function
+#' @param data Either a data frame containing sequences of a categorical 
+#' variable, where missing data are coded as \code{NA}, or a state sequence 
+#' object created using the \link[TraMineR]{seqdef} function. 
 #' 
+#' @param var A vector specifying the columns of the dataset 
+#' that contain the trajectories. Default is \code{NULL}, meaning all columns 
+#' are used.
+#' 
+#' @param with.complete Logical, if \code{TRUE}, complete trajectories 
+#' will be included in the plot.
+#' 
+#' @param void.miss Logical, if \code{TRUE}, treats void elements as 
+#' missing values. Applies only to state sequence objects created with 
+#' \link[TraMineR]{seqdef}. Note that the default behavior of \code{seqdef} 
+#' is to treat missing data at the end of sequences as void elements.
+#' 
+#' @param ... Additional parameters passed to the \link[TraMineR]{seqfplot} 
+#' function.
 #' @details
-#' This plot function is based on the \link[TraMineR]{seqfplot} function. 
-#' To see which arguments can be changed, see the \link[TraMineR]{seqfplot} 
-#' help. In particular, the number of most frequent 
-#' patterns to be plotted can be changed with the argument \code{idxs}. By 
-#' default, the 10 most frequent patterns are plotted. 
+#' This plot function is based on the \link[TraMineR]{seqfplot} function, 
+#' allowing users to visualize patterns of missing data within sequences. 
+#' For details on additional customizable arguments, see the 
+#' \link[TraMineR]{seqfplot} documentation. 
+#' 
+#' By default, this function plots the 10 most frequent patterns. The number 
+#' of patterns to be plotted can be adjusted using the \code{idxs} argument 
+#' in \code{seqfplot}.
 #' 
 #'
 #' @author Kevin Emery
@@ -39,41 +50,46 @@
 #' 
 #' seqmissfplot(gameadd, var=1:4, with.missing = FALSE, idxs = 1:5)
 #' 
+#' 
 #' @export
-seqmissfplot <- function(data, var = NULL, with.complete = TRUE, ...) {
-  data <- dataxtract(data, var)
-  
+seqmissfplot <- function(data, var = NULL, with.complete = TRUE, 
+                         void.miss = TRUE, ...) {
   if(inherits(data, "stslist")) {
-    seqdata <- data
+    seqmiss <- data
   }else{
-    seqdata <- suppressMessages(seqdef(data, right=NA))
+    data <- dataxtract(data, var)
+    seqmiss <- suppressMessages(seqdef(data, right=NA))
   }
-  if (with.complete == TRUE) {
-    seqmiss <- seqdata
-  } else {
-    seqmiss <- seqwithmiss(seqdata)
-  }
+  
   misspatterns <- matrix(NA, nrow(seqmiss), ncol(seqmiss))
   misspatterns <- as.data.frame(misspatterns)
   colnames(misspatterns) <- colnames(seqmiss)
-
-  misspatterns <- matrix(NA, nrow(seqmiss), ncol(seqmiss))
-  misspatterns <- as.data.frame(misspatterns)
-  colnames(misspatterns) <- colnames(seqmiss)
-  if (!is.na(attr(seqmiss, "nr"))) {
+  
+  if(void.miss==FALSE){
     misspatterns[seqmiss == attr(seqmiss, "nr")] <- "missing"
-    misspatterns[seqmiss != attr(seqmiss, "nr")] <- "observed"
+    misspatterns[seqmiss != attr(seqmiss, "nr")] <- "not missing"
+    
+    if (with.complete == FALSE) {
+      misspatterns <- misspatterns[rowSums(misspatterns=="missing")!=0,]
+    }
     seqtest <- suppressMessages(TraMineR::seqdef(misspatterns, 
-        alphabet = c("observed", "missing"), cpal = c("blue", "red"), 
-        xtstep = attr(seqmiss, "xtstep")))
+                                                 alphabet = c("not missing", "missing"), cpal = c("blue", "red"), 
+                                                 xtstep = attr(seqmiss, "xtstep")))
     
     TraMineR::seqfplot(seqtest, ...)
-  } else {
-    misspatterns[is.na(seqmiss)] <- "missing"
-    misspatterns[!is.na(seqmiss)] <- "observed"
+    
+  }else{
+    misspatterns[seqmiss == attr(seqmiss, "nr") 
+                 | seqmiss == attr(seqmiss, "void")] <- "missing"
+    misspatterns[seqmiss != attr(seqmiss, "nr") 
+                 & seqmiss != attr(seqmiss, "void")] <- "not missing"
+    
+    if (with.complete == FALSE) {
+      misspatterns <- misspatterns[rowSums(misspatterns=="missing")!=0,]
+    }
     seqtest <- suppressMessages(TraMineR::seqdef(misspatterns, 
-        alphabet = c("observed", "missing"), cpal = c("blue", "red"), 
-        xtstep = attr(seqmiss, "xtstep")))
+                                                 alphabet = c("not missing", "missing"), cpal = c("blue", "red"), 
+                                                 xtstep = attr(seqmiss, "xtstep")))
     
     TraMineR::seqfplot(seqtest, ...)
   }
@@ -82,17 +98,33 @@ seqmissfplot <- function(data, var = NULL, with.complete = TRUE, ...) {
 
 #' Plot all the patterns of missing data.
 #' 
-#' #' @description
-#' Plot function that renders all the patterns of missing data. This
-#' function is based on the \link[TraMineR]{seqIplot} function. 
-#'
-#' @param data a data.frame where missing data are coded as \code{NA} or 
-#' a state sequence object built with \link[TraMineR]{seqdef} function
-#' @param var the list of columns containing the trajectories. 
-#' Default is NULL, i.e. all the columns. 
-#' @param with.complete a logical stating if complete trajectories 
-#' should be included or not in the plot
-#' @param ... parameters to be passed to the \link[TraMineR]{seqIplot}function
+#' @description
+#' This function plots all patterns of missing data within sequences, based on 
+#' the \link[TraMineR]{seqIplot} function.
+#' 
+#' @param data Either a data frame containing sequences of a categorical 
+#' variable, where missing data are coded as \code{NA}, or a state sequence 
+#' object created using the \link[TraMineR]{seqdef} function. 
+#' 
+#' @param var A vector specifying the columns of the dataset 
+#' that contain the trajectories. Default is \code{NULL}, meaning all columns 
+#' are used.
+#' 
+#' @param with.complete Logical, if \code{TRUE}, complete trajectories 
+#' will be included in the plot.
+#' 
+#' @param void.miss Logical, if \code{TRUE}, treats void elements as 
+#' missing values. Applies only to state sequence objects created with 
+#' \link[TraMineR]{seqdef}. Note that the default behavior of \code{seqdef} 
+#' is to treat missing data at the end of sequences as void elements.
+#' 
+#' @param ... Additional parameters passed to the \link[TraMineR]{seqIplot} function.
+#' 
+#' @details
+#' This function uses \link[TraMineR]{seqIplot} to visualize all patterns of missing 
+#' data within sequences. For further customization options, refer to the 
+#' \link[TraMineR]{seqIplot} documentation.
+#' 
 #' 
 #' @examples
 #' # Plot all the patterns of missing data
@@ -106,38 +138,45 @@ seqmissfplot <- function(data, var = NULL, with.complete = TRUE, ...) {
 #' @author Kevin Emery
 #'
 #' @export
-seqmissIplot <- function(data, var = NULL, with.complete = TRUE, ...) {
-  data <- dataxtract(data, var)
-  
+seqmissIplot <- function(data, var = NULL, with.complete = TRUE, 
+                         void.miss = TRUE, ...) {
   if(inherits(data, "stslist")) {
-    seqdata <- data
+    seqmiss <- data
   }else{
-    seqdata <-suppressMessages(seqdef(data, right=NA))
-  }
-  if (with.complete == TRUE) {
-    seqmiss <- seqdata
-  } else {
-    seqmiss <- seqwithmiss(seqdata)
+    data <- dataxtract(data, var)
+    seqmiss <- suppressMessages(seqdef(data, right=NA))
   }
   
   misspatterns <- matrix(NA, nrow(seqmiss), ncol(seqmiss))
   misspatterns <- as.data.frame(misspatterns)
   colnames(misspatterns) <- colnames(seqmiss)
-  if (!is.na(attr(seqmiss, "nr"))) {
+  
+  if(void.miss==FALSE){
     misspatterns[seqmiss == attr(seqmiss, "nr")] <- "missing"
-    misspatterns[seqmiss != attr(seqmiss, "nr")] <- "observed"
+    misspatterns[seqmiss != attr(seqmiss, "nr")] <- "not missing"
+    
+    if (with.complete == FALSE) {
+      misspatterns <- misspatterns[rowSums(misspatterns=="missing")!=0,]
+    }
     seqtest <- suppressMessages(TraMineR::seqdef(misspatterns, 
-      alphabet = c("observed", "missing"), cpal = c("blue", "red"), 
-      xtstep = attr(seqmiss, "xtstep")))
-
+                                                 alphabet = c("not missing", "missing"), cpal = c("blue", "red"), 
+                                                 xtstep = attr(seqmiss, "xtstep")))
+    
     TraMineR::seqIplot(seqtest, ...)
-  } else {
-    misspatterns[is.na(seqmiss)] <- "missing"
-    misspatterns[!is.na(seqmiss)] <- "observed"
+    
+  }else{
+    misspatterns[seqmiss == attr(seqmiss, "nr") 
+                 | seqmiss == attr(seqmiss, "void")] <- "missing"
+    misspatterns[seqmiss != attr(seqmiss, "nr") 
+                 & seqmiss != attr(seqmiss, "void")] <- "not missing"
+    
+    if (with.complete == FALSE) {
+      misspatterns <- misspatterns[rowSums(misspatterns=="missing")!=0,]
+    }
     seqtest <- suppressMessages(TraMineR::seqdef(misspatterns, 
-      alphabet = c("observed", "missing"), cpal = c("blue", "red"), 
-      xtstep = attr(seqmiss, "xtstep")))
-
+                                                 alphabet = c("not missing", "missing"), cpal = c("blue", "red"), 
+                                                 xtstep = attr(seqmiss, "xtstep")))
+    
     TraMineR::seqIplot(seqtest, ...)
   }
 }
@@ -145,16 +184,25 @@ seqmissIplot <- function(data, var = NULL, with.complete = TRUE, ...) {
 #' Identification and visualization of states that best characterize sequences
 #' with missing data
 #' 
-#' @description Function based on the \link[TraMineRextras]{seqimplic}. 
-#' Identification and visualization of the states that best characterize the 
-#' sequence with missing data vs. the sequences without missing data at each 
-#' position (time point). See the \link[TraMineRextras]{seqimplic} help 
-#' for more details on how it works.
-#'
-#' @param data a data frame where missing data are coded as \code{NA} or 
-#' a state sequence object built with \link[TraMineR]{seqdef} function
-#' @param var the list of columns containing the trajectories. 
-#' Default is NULL, i.e. all the columns.
+#' @description
+#' This function identifies and visualizes states that best characterize 
+#' sequences with missing data at each position (time point), comparing them to 
+#' sequences without missing data at each position (time point). It is based on 
+#' the \link[TraMineRextras]{seqimplic} function. For more information on the 
+#' methodology, see the \code{seqimplic} documentation.
+#' 
+#' @param data Either a data frame containing sequences of a categorical 
+#' variable, where missing data are coded as \code{NA}, or a state sequence 
+#' object created using the \link[TraMineR]{seqdef} function. 
+#' 
+#' @param var A vector specifying the columns of the dataset 
+#' that contain the trajectories. Default is \code{NULL}, meaning all columns 
+#' are used.
+#' 
+#' @param void.miss Logical, if \code{TRUE}, treats void elements as 
+#' missing values. This argument applies only to state sequence objects created 
+#' with \link[TraMineR]{seqdef}. Note that the default behavior of \code{seqdef} 
+#' is to treat missing data at the end of sequences as void elements.
 #' @param ... parameters to be passed to the \link[TraMineRextras]{seqimplic}
 #' function
 #' 
@@ -180,17 +228,22 @@ seqmissIplot <- function(data, var = NULL, with.complete = TRUE, ...) {
 #' @author Kevin Emery
 #'
 #' @export
-seqmissimplic <- function(data, var = NULL, ...){
-  
-  data <- dataxtract(data, var)
+seqmissimplic <- function(data, var = NULL, void.miss = TRUE,...){
   
   if(inherits(data, "stslist")) {
     seqdata <- data
   }else{
+    data <- dataxtract(data, var)
     seqdata <-suppressMessages(seqdef(data, right=NA))
   }
   tt <- rep("missing", nrow(seqdata))
-  tt[rowSums(seqdata == attr(seqdata, "nr")) == 0] <- "observed"
+  
+  if(void.miss==FALSE){
+    tt[rowSums(seqdata == attr(seqdata, "nr")) == 0] <- "not missing"
+  }else{
+    tt[rowSums(seqdata == attr(seqdata, "nr")) == 0 & 
+         rowSums(seqdata == attr(seqdata, "void")) == 0] <- "not missing"
+  }
   imp <- suppressWarnings(TraMineRextras::seqimplic(seqdata, tt, na.rm=FALSE))
   return(imp)
 }

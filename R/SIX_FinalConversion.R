@@ -19,18 +19,35 @@ FinalResultConvert <- function(RESULT, ODClass, ODlevels,
 
   #### We put again the rows having only NA's discarded at the beginning
   if (length(rowsNA) > 0) {
-    for (i in 1:length(rowsNA)) {
-      if (rowsNA[i] == 1) {
-        RESULT <- rbind(rep(NA, ncol(RESULT)), RESULT)
-      } else if (rowsNA[i] == nrowsDataset) {
-        RESULT <- rbind(RESULT,rep(NA, ncol(RESULT)))
-      } else {
-        RESULT <- rbind(RESULT[1:(rowsNA[i] - 1), ],
-                        rep(NA, ncol(RESULT)),
-                        RESULT[rowsNA[i]:nrow(RESULT), ])
+    if(nrowsDataset%in%rowsNA){
+      RESULT <- rbind(RESULT,rep(NA, ncol(RESULT)))
+      rownames(RESULT)[nrow(RESULT)] <- nrowsDataset
+      if(length(rowsNA)>1){
+        for (i in 1:(length(rowsNA)-1)) {
+          if (rowsNA[i] == 1) {
+            RESULT <- rbind(rep(NA, ncol(RESULT)), RESULT)
+          } else {
+            RESULT <- rbind(RESULT[1:(rowsNA[i] - 1), ],
+                            rep(NA, ncol(RESULT)),
+                            RESULT[rowsNA[i]:nrow(RESULT), ])
+          }
+        }
+      }
+    }else{
+      for (i in 1:length(rowsNA)) {
+        if (rowsNA[i] == 1) {
+          RESULT <- rbind(rep(NA, ncol(RESULT)), RESULT)
+        } else if (rowsNA[i] == nrowsDataset) {
+          RESULT <- rbind(RESULT,rep(NA, ncol(RESULT)))
+        } else {
+          RESULT <- rbind(RESULT[1:(rowsNA[i] - 1), ],
+                          rep(NA, ncol(RESULT)),
+                          RESULT[rowsNA[i]:nrow(RESULT), ])
+        }
       }
     }
   }
+    
 
   return(RESULT)
 }

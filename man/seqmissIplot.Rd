@@ -4,24 +4,35 @@
 \alias{seqmissIplot}
 \title{Plot all the patterns of missing data.}
 \usage{
-seqmissIplot(data, var = NULL, with.complete = TRUE, ...)
+seqmissIplot(data, var = NULL, with.complete = TRUE, void.miss = TRUE, ...)
 }
 \arguments{
-\item{data}{a data.frame where missing data are coded as \code{NA} or 
-a state sequence object built with \link[TraMineR]{seqdef} function}
+\item{data}{Either a data frame containing sequences of a categorical 
+variable, where missing data are coded as \code{NA}, or a state sequence 
+object created using the \link[TraMineR]{seqdef} function.}
 
-\item{var}{the list of columns containing the trajectories. 
-Default is NULL, i.e. all the columns.}
+\item{var}{A vector specifying the columns of the dataset 
+that contain the trajectories. Default is \code{NULL}, meaning all columns 
+are used.}
 
-\item{with.complete}{a logical stating if complete trajectories 
-should be included or not in the plot}
+\item{with.complete}{Logical, if \code{TRUE}, complete trajectories 
+will be included in the plot.}
 
-\item{...}{parameters to be passed to the \link[TraMineR]{seqIplot}function}
+\item{void.miss}{Logical, if \code{TRUE}, treats void elements as 
+missing values. Applies only to state sequence objects created with 
+\link[TraMineR]{seqdef}. Note that the default behavior of \code{seqdef} 
+is to treat missing data at the end of sequences as void elements.}
+
+\item{...}{Additional parameters passed to the \link[TraMineR]{seqIplot} function.}
 }
 \description{
-#' @description
-Plot function that renders all the patterns of missing data. This
-function is based on the \link[TraMineR]{seqIplot} function.
+This function plots all patterns of missing data within sequences, based on 
+the \link[TraMineR]{seqIplot} function.
+}
+\details{
+This function uses \link[TraMineR]{seqIplot} to visualize all patterns of missing 
+data within sequences. For further customization options, refer to the 
+\link[TraMineR]{seqIplot} documentation.
 }
 \examples{
 # Plot all the patterns of missing data

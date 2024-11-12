@@ -12,35 +12,42 @@ seqaddNA(
   pstart.high = 0.1,
   pstart.low = 0.005,
   maxgap = 3,
+  maxprop = 0.75,
   only.traj = FALSE
 )
 }
 \arguments{
-\item{data}{a data frame containing sequences of a multinomial 
-variable with missing data (coded as \code{NA})}
+\item{data}{A data frame containing sequences of a categorical (multinomial) 
+variable, where missing data are coded as \code{NA}.}
 
-\item{var}{the list of columns containing the trajectories. 
-Default is \code{NULL}, i.e. all the columns.}
+\item{var}{A vector specifying the columns of the dataset 
+that contain the trajectories. Default is \code{NULL}, meaning all columns 
+are used.}
 
-\item{states.high}{list of states that have a larger probability of 
-triggering a subsequent missing data gap}
+\item{states.high}{A list of states with a higher probability of 
+initiating a subsequent missing data gap.}
 
-\item{propdata}{proportion  observations for which missing data is simulated}
+\item{propdata}{Proportion of observations for which missing data 
+is simulated, as a decimal between 0 and 1.}
 
-\item{pstart.high}{probability to start a missing data for the 
-states specified with the \code{states.high} argument}
+\item{pstart.high}{Probability of starting a missing data gap for the 
+states specified in the \code{states.high} argument.}
 
-\item{pstart.low}{probability to start a missing data for the 
-other states}
+\item{pstart.low}{Probability of starting a missing data gap for all 
+other states.}
 
-\item{maxgap}{maximum length of a missing data gap}
+\item{maxgap}{Maximum length of a missing data gap.}
 
-\item{only.traj}{logical that specifies whether only the trajectories should 
-be returned (\code{only.traj=TRUE}), or 
-the whole data (\code{only.traj=FALSE})}
+\item{maxprop}{Maximum proportion of missing data allowed in a sequence, 
+as a decimal between 0 and 1. If the proportion exceeds this value, the 
+simulation is rerun for the sequence.}
+
+\item{only.traj}{Logical, if \code{TRUE}, only the 
+trajectories (specified in \code{var}) are returned. If \code{FALSE}, 
+the entire data frame is returned.}
 }
 \value{
-Returns a data frame on which missing data were simulated
+A data frame with simulated missing data.
 }
 \description{
 Generation of missing data under the form of gaps, which

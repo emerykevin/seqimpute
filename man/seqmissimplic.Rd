@@ -5,14 +5,21 @@
 \title{Identification and visualization of states that best characterize sequences
 with missing data}
 \usage{
-seqmissimplic(data, var = NULL, ...)
+seqmissimplic(data, var = NULL, void.miss = TRUE, ...)
 }
 \arguments{
-\item{data}{a data frame where missing data are coded as \code{NA} or 
-a state sequence object built with \link[TraMineR]{seqdef} function}
+\item{data}{Either a data frame containing sequences of a categorical 
+variable, where missing data are coded as \code{NA}, or a state sequence 
+object created using the \link[TraMineR]{seqdef} function.}
 
-\item{var}{the list of columns containing the trajectories. 
-Default is NULL, i.e. all the columns.}
+\item{var}{A vector specifying the columns of the dataset 
+that contain the trajectories. Default is \code{NULL}, meaning all columns 
+are used.}
+
+\item{void.miss}{Logical, if \code{TRUE}, treats void elements as 
+missing values. This argument applies only to state sequence objects created 
+with \link[TraMineR]{seqdef}. Note that the default behavior of \code{seqdef} 
+is to treat missing data at the end of sequences as void elements.}
 
 \item{...}{parameters to be passed to the \link[TraMineRextras]{seqimplic}
 function}
@@ -21,11 +28,11 @@ function}
 returns a \code{seqimplic} object that can be plotted and printed.
 }
 \description{
-Function based on the \link[TraMineRextras]{seqimplic}. 
-Identification and visualization of the states that best characterize the 
-sequence with missing data vs. the sequences without missing data at each 
-position (time point). See the \link[TraMineRextras]{seqimplic} help 
-for more details on how it works.
+This function identifies and visualizes states that best characterize 
+sequences with missing data at each position (time point), comparing them to 
+sequences without missing data at each position (time point). It is based on 
+the \link[TraMineRextras]{seqimplic} function. For more information on the 
+methodology, see the \code{seqimplic} documentation.
 }
 \examples{
 

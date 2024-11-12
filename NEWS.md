@@ -1,3 +1,28 @@
+# seqimpute 2.1.0
+
+## New features
+* `seqimpute()` now has an argument `end.impute` argument, which specifies if 
+missing data at the end of sequences should be imputed or not.
+
+* `seqmissIplot()`, `seqmissfplot()` and `seqmissimplic` now have an argument 
+`void.miss`, which specifies whether the void values of a provided object of 
+class `stslist` should be considered as missings or not.
+
+* `seqaddNA()` now has an argument `maxprop`, which specifies the maximum
+proportion of missing data that is allowed to be simulated in a sequence.
+
+
+## Minor improvments and fixes
+* Fixes issues with `seqimpute()` when more than one row only with NA's end 
+the dataset to impute.
+
+* In `seqmissIplot()` and `seqmissfplot()`, the states in the plots are now 
+labbeled as 'missing' and 'not missing' instead of 'missing' and 'observed' to 
+account for uneven sequence length.
+
+* Fixes issues in `seqimpute()` related to the preparation of the data when
+an object of class `stslist`, built with the `TraMineR` package is provided.
+
 # seqimpute 2.0.0
 
 ## Breaking changes
@@ -12,7 +37,7 @@ deprecated.
 * The `CO` argument has been renamed to `covariates`. The argument `CO` itself
 is deprecated.
 
-* The `COt` argument has been renamed to `time. covariates`. The argument 
+* The `COt` argument has been renamed to `time.covariates`. The argument 
 `COt` itself is deprecated.
 
 * The `mi` argument has been renamed to `m`. The argument `mi` itself is

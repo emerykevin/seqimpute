@@ -20,6 +20,7 @@ seqimpute(
   ParExec = FALSE,
   ncores = NULL,
   SetRNGSeed = FALSE,
+  end.impute = TRUE,
   verbose = TRUE,
   available = TRUE,
   pastDistrib = FALSE,
@@ -28,66 +29,74 @@ seqimpute(
 )
 }
 \arguments{
-\item{data}{a data frame containing sequences of a categorical
-variable with missing data (coded as \code{NA})}
+\item{data}{Either a data frame containing sequences of a categorical 
+variable, where missing data are coded as \code{NA}, or a state sequence 
+object created using the \link[TraMineR]{seqdef} function. If using a 
+state sequence object, any "void" elements will also be treated as missing. 
+See the \code{end.impute} argument if you wish to skip imputing values 
+at the end of the sequences.}
 
-\item{var}{the list of columns containing the trajectories. 
-Default is NULL, i.e. all the columns.}
+\item{var}{A specifying the columns of the dataset 
+that contain the trajectories. Default is \code{NULL}, meaning all columns 
+are used.}
 
-\item{np}{number of previous observations in the imputation model 
-of the internal gaps.}
+\item{np}{Number of prior states to include in the imputation model 
+for internal gaps.}
 
-\item{nf}{number of future observations in the imputation model 
-of the internal gaps.}
+\item{nf}{Number of subsequent states to include in the imputation model 
+for internal gaps.}
 
-\item{m}{number of multiple imputations  (default: \code{5}).}
+\item{m}{Number of multiple imputations to perform (default: \code{5}).}
 
-\item{timing}{a logical value that specifies if the MICT algorithm 
-(timing=FALSE) or the MICT-timing algorithm (timing=TRUE) should be used.}
+\item{timing}{Logical, specifies the imputation algorithm to use. 
+If \code{FALSE}, the MICT algorithm is applied; if \code{TRUE}, the 
+MICT-timing algorithm is used.}
 
-\item{frame.radius}{parameter relative to the MICT-timing algorithm 
+\item{frame.radius}{Integer, relevant only for the MICT-timing algorithm, 
 specifying the radius of the timeframe.}
 
-\item{covariates}{the list of columns containing the covariates to include
-in the imputation process}
+\item{covariates}{List of the columns of the dataset
+containing covariates to be included in the imputation model.}
 
-\item{time.covariates}{the list of columns containing the time-varying 
-covariates to include in the imputation process}
+\item{time.covariates}{List of the columns of the dataset
+with time-varying covariates to include in the imputation model.}
 
-\item{regr}{a character specifying the imputation method. If 
-\code{regr="multinom"}, multinomial models are used, while 
-if \code{regr="rf"}, random forest models are used.}
+\item{regr}{Character specifying the imputation method. Options include 
+\code{"multinom"} for multinomial models and \code{"rf"} for random forest 
+models.}
 
-\item{npt}{number of previous observations in the imputation model 
-of the terminal gaps.}
+\item{npt}{Number of prior observations in the imputation model for 
+terminal gaps (i.e., gaps at the end of sequences).}
 
-\item{nfi}{number of future observations in the imputation model 
-of the initial gaps.}
+\item{nfi}{Number of future observations in the imputation model for 
+initial gaps (i.e., gaps at the beginning of sequences).}
 
-\item{ParExec}{logical. If \code{TRUE}, the multiple imputations are run 
-in parallel. This allows faster run time depending of how many cores 
-the processor has.}
+\item{ParExec}{Logical, indicating whether to run multiple imputations 
+in parallel. Setting to \code{TRUE} can improve computation time depending 
+on available cores.}
 
-\item{ncores}{integer. Number of cores to be used for the parallel 
-computation. If no value is set for this parameter, the number of cores 
-will be set to the maximum number of CPU cores minus 1.}
+\item{ncores}{Integer, specifying the number of cores to use for parallel 
+computation. If unset, defaults to the maximum number of CPU cores minus one.}
 
-\item{SetRNGSeed}{an integer that is used to set the seed in the case of 
-parallel computation. Note that setting \code{set.seed()} alone before the 
-seqimpute function won't work in case of parallel computation.}
+\item{SetRNGSeed}{Integer, to set the random seed for reproducibility in 
+parallel computations. Note that setting \code{set.seed()} alone does not 
+ensure reproducibility in parallel mode.}
 
-\item{verbose}{logical. If \code{TRUE}, seqimpute will print history and 
-warnings on console. Use \code{verbose=FALSE} for silent computation.}
+\item{end.impute}{Logical. If \code{FALSE}, missing data at the end of 
+sequences will not be imputed.}
 
-\item{available}{a logical value allowing the user to choose whether 
-to consider the already imputed data in the predictive model 
-(\code{available = TRUE}) or not (\code{available = FALSE}).}
+\item{verbose}{Logical, if \code{TRUE}, displays progress and warnings 
+in the console. Use \code{FALSE} for silent computation.}
 
-\item{pastDistrib}{a logical indicating if the past distribution should be 
-used as predictor in the imputation model.}
+\item{available}{Logical, specifies whether to consider already imputed 
+data in the predictive model. If \code{TRUE}, previous imputations are 
+used; if \code{FALSE}, only original data are considered.}
 
-\item{futureDistrib}{a logical indicating if the future distribution 
-should be used as predictor in the imputation model.}
+\item{pastDistrib}{Logical, if \code{TRUE}, includes the past distribution 
+as a predictor in the imputation model.}
+
+\item{futureDistrib}{Logical, if \code{TRUE}, includes the future distribution 
+as a predictor in the imputation model.}
 
 \item{...}{Named arguments that are passed down to the imputation functions.}
 }

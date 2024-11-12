@@ -4,24 +4,37 @@
 #' is the typical form of missing data with longitudinal data.
 #' It simulates MCAR or MAR missing data.
 #'
-#' @param data a data frame containing sequences of a multinomial 
-#' variable with missing data (coded as \code{NA})
-#' @param var the list of columns containing the trajectories. 
-#' Default is \code{NULL}, i.e. all the columns. 
-#' @param states.high list of states that have a larger probability of 
-#' triggering a subsequent missing data gap
-#' @param pstart.high probability to start a missing data for the 
-#' states specified with the \code{states.high} argument
-#' @param pstart.low probability to start a missing data for the 
-#' other states
-#' @param propdata proportion  observations for which missing data is simulated
-#' @param maxgap maximum length of a missing data gap
+#' @param data A data frame containing sequences of a categorical (multinomial) 
+#' variable, where missing data are coded as \code{NA}.
 #' 
-#' @param only.traj logical that specifies whether only the trajectories should 
-#' be returned (\code{only.traj=TRUE}), or 
-#' the whole data (\code{only.traj=FALSE})
-#'
-#' @return Returns a data frame on which missing data were simulated
+#' @param var A vector specifying the columns of the dataset 
+#' that contain the trajectories. Default is \code{NULL}, meaning all columns 
+#' are used.
+#' 
+#' @param states.high A list of states with a higher probability of 
+#' initiating a subsequent missing data gap.
+#' 
+#' @param pstart.high Probability of starting a missing data gap for the 
+#' states specified in the \code{states.high} argument.
+#' 
+#' @param pstart.low Probability of starting a missing data gap for all 
+#' other states.
+#' 
+#' @param propdata Proportion of observations for which missing data 
+#' is simulated, as a decimal between 0 and 1.
+#' 
+#' @param maxgap Maximum length of a missing data gap.
+#' 
+#' @param maxprop Maximum proportion of missing data allowed in a sequence, 
+#' as a decimal between 0 and 1. If the proportion exceeds this value, the 
+#' simulation is rerun for the sequence.
+#' 
+#' @param only.traj Logical, if \code{TRUE}, only the 
+#' trajectories (specified in \code{var}) are returned. If \code{FALSE}, 
+#' the entire data frame is returned.
+#' 
+#' @return A data frame with simulated missing data.
+#' 
 #' 
 #' @author Kevin Emery
 #' 
@@ -41,7 +54,8 @@
 #'
 #' @export
 seqaddNA <- function(data, var = NULL, states.high = NULL, propdata = 1, 
-  pstart.high = 0.1, pstart.low = 0.005, maxgap = 3, only.traj = FALSE)
+  pstart.high = 0.1, pstart.low = 0.005, maxgap = 3, maxprop=0.75, 
+  only.traj = FALSE)
 {
   data.traj <- dataxtract(data, var)
   
@@ -51,7 +65,7 @@ seqaddNA <- function(data, var = NULL, states.high = NULL, propdata = 1,
   for (i in 1:length(rowsmiss)) {
     nmis <- ncol(data.traj)
     length.gap <- 0
-    while (nmis > floor(0.75 * ncol(data.traj))) {
+    while (nmis > floor(maxprop * ncol(data.traj))) {
       for (j in 1:ncol(data.traj)) {
         if (length.gap == maxgap) {
           matrix.missing[rowsmiss[i], j] <- 1

@@ -45,48 +45,68 @@
 #' in more accurate imputed values.
 #'
 #'
-#' @param data a data frame containing sequences of a categorical
-#' variable with missing data (coded as \code{NA})
-#' @param var the list of columns containing the trajectories. 
-#' Default is NULL, i.e. all the columns. 
-#' @param np number of previous observations in the imputation model 
-#' of the internal gaps.
-#' @param nf number of future observations in the imputation model 
-#' of the internal gaps.
-#' @param m number of multiple imputations  (default: \code{5}).
-#' @param timing a logical value that specifies if the MICT algorithm 
-#' (timing=FALSE) or the MICT-timing algorithm (timing=TRUE) should be used.
-#' @param frame.radius parameter relative to the MICT-timing algorithm 
+#' @param data Either a data frame containing sequences of a categorical 
+#' variable, where missing data are coded as \code{NA}, or a state sequence 
+#' object created using the \link[TraMineR]{seqdef} function. If using a 
+#' state sequence object, any "void" elements will also be treated as missing. 
+#' See the \code{end.impute} argument if you wish to skip imputing values 
+#' at the end of the sequences.
+#' @param var A specifying the columns of the dataset 
+#' that contain the trajectories. Default is \code{NULL}, meaning all columns 
+#' are used.
+#' @param np Number of prior states to include in the imputation model 
+#' for internal gaps.
+#' @param nf Number of subsequent states to include in the imputation model 
+#' for internal gaps.
+#' @param m Number of multiple imputations to perform (default: \code{5}).
+#' @param timing Logical, specifies the imputation algorithm to use. 
+#' If \code{FALSE}, the MICT algorithm is applied; if \code{TRUE}, the 
+#' MICT-timing algorithm is used.
+#' @param frame.radius Integer, relevant only for the MICT-timing algorithm, 
 #' specifying the radius of the timeframe.
-#' @param covariates the list of columns containing the covariates to include
-#' in the imputation process
-#' @param time.covariates the list of columns containing the time-varying 
-#' covariates to include in the imputation process
-#' @param regr a character specifying the imputation method. If 
-#' \code{regr="multinom"}, multinomial models are used, while 
-#' if \code{regr="rf"}, random forest models are used.
-#' @param npt number of previous observations in the imputation model 
-#' of the terminal gaps.
-#' @param nfi number of future observations in the imputation model 
-#' of the initial gaps.
-#' @param ParExec logical. If \code{TRUE}, the multiple imputations are run 
-#' in parallel. This allows faster run time depending of how many cores 
-#' the processor has.
-#' @param ncores integer. Number of cores to be used for the parallel 
-#' computation. If no value is set for this parameter, the number of cores 
-#' will be set to the maximum number of CPU cores minus 1.
-#' @param SetRNGSeed an integer that is used to set the seed in the case of 
-#' parallel computation. Note that setting \code{set.seed()} alone before the 
-#' seqimpute function won't work in case of parallel computation.
-#' @param verbose logical. If \code{TRUE}, seqimpute will print history and 
-#' warnings on console. Use \code{verbose=FALSE} for silent computation.
-#' @param available a logical value allowing the user to choose whether 
-#' to consider the already imputed data in the predictive model 
-#' (\code{available = TRUE}) or not (\code{available = FALSE}).
-#' @param pastDistrib a logical indicating if the past distribution should be 
-#' used as predictor in the imputation model.
-#' @param futureDistrib a logical indicating if the future distribution 
-#' should be used as predictor in the imputation model.
+#' 
+#' @param covariates List of the columns of the dataset
+#' containing covariates to be included in the imputation model.
+#' 
+#' @param time.covariates List of the columns of the dataset
+#'  with time-varying covariates to include in the imputation model.
+#' 
+#' @param regr Character specifying the imputation method. Options include 
+#' \code{"multinom"} for multinomial models and \code{"rf"} for random forest 
+#' models.
+#' 
+#' @param npt Number of prior observations in the imputation model for 
+#' terminal gaps (i.e., gaps at the end of sequences).
+#' 
+#' @param nfi Number of future observations in the imputation model for 
+#' initial gaps (i.e., gaps at the beginning of sequences).
+#' 
+#' @param ParExec Logical, indicating whether to run multiple imputations 
+#' in parallel. Setting to \code{TRUE} can improve computation time depending 
+#' on available cores.
+#' 
+#' @param ncores Integer, specifying the number of cores to use for parallel 
+#' computation. If unset, defaults to the maximum number of CPU cores minus one.
+#' 
+#' @param SetRNGSeed Integer, to set the random seed for reproducibility in 
+#' parallel computations. Note that setting \code{set.seed()} alone does not 
+#' ensure reproducibility in parallel mode.
+#' 
+#' @param end.impute Logical. If \code{FALSE}, missing data at the end of 
+#' sequences will not be imputed.
+#' 
+#' @param verbose Logical, if \code{TRUE}, displays progress and warnings 
+#' in the console. Use \code{FALSE} for silent computation.
+#' 
+#' @param available Logical, specifies whether to consider already imputed 
+#' data in the predictive model. If \code{TRUE}, previous imputations are 
+#' used; if \code{FALSE}, only original data are considered.
+#' 
+#' @param pastDistrib Logical, if \code{TRUE}, includes the past distribution 
+#' as a predictor in the imputation model.
+#' 
+#' @param futureDistrib Logical, if \code{TRUE}, includes the future distribution 
+#' as a predictor in the imputation model.
 #' @param ... Named arguments that are passed down to the imputation functions.
 #'
 #' @author Kevin Emery <kevin.emery@@unige.ch>, Andre Berchtold,  
@@ -138,18 +158,33 @@
 #' @export
 seqimpute <- function(data, var = NULL, np = 1, nf = 1, m = 5, timing = FALSE, 
   frame.radius = 0, covariates = NULL, 
-  time.covariates = NULL, regr = "multinom", 
+  time.covariates = NULL, regr = "multinom",
   npt = 1, nfi = 1, ParExec = FALSE, ncores = NULL, 
-  SetRNGSeed = FALSE, verbose = TRUE, available = TRUE, pastDistrib = FALSE,
-  futureDistrib = FALSE,...)
+  SetRNGSeed = FALSE, end.impute = TRUE, verbose = TRUE, available = TRUE, 
+  pastDistrib = FALSE, futureDistrib = FALSE,...)
 {
   
   call <- match.call()
   check.deprecated(...)
-  covariates <- covxtract(data, covariates)
-  time.covariates <- covxtract(data, time.covariates)
   
-  data <- dataxtract(data, var)
+  if (inherits(data, "stslist")) {
+    valuesNA <- c(attr(data, "nr"), attr(data, "void"))
+    data <- data.frame(data)
+    data[data == valuesNA[1] | data == valuesNA[2]] <- NA
+  }else{
+    covariates <- covxtract(data, covariates)
+    time.covariates <- covxtract(data, time.covariates)
+    
+    data <- dataxtract(data, var)
+  }
+  
+  if (sum(is.na(data)) == 0) {
+    if (verbose == TRUE) {
+      message("This dataset has no missing values!")
+    }
+    return(data)
+  }
+  
   
   if (timing == FALSE) {
     imputed <- seqimpute_standard(data,
@@ -157,7 +192,8 @@ seqimpute <- function(data, var = NULL, np = 1, nf = 1, m = 5, timing = FALSE,
       time.covariates = time.covariates, regr = regr, nfi = nfi, npt = npt,
       available = available, pastDistrib = pastDistrib,
       futureDistrib = futureDistrib, noise = 0, ParExec = ParExec, 
-      ncores = ncores, SetRNGSeed = SetRNGSeed, verbose = verbose, ...)
+      ncores = ncores, SetRNGSeed = SetRNGSeed, end.impute = end.impute, 
+      verbose = verbose, ...)
     method <- "MICT"
   }else {
     imputed <- seqimpute_timing(data,
@@ -165,12 +201,13 @@ seqimpute <- function(data, var = NULL, np = 1, nf = 1, m = 5, timing = FALSE,
       time.covariates = time.covariates, regr = regr, nfi = nfi, npt = npt,
       available = available, pastDistrib = pastDistrib,
       futureDistrib = futureDistrib, noise = 0, ParExec = ParExec, 
-      ncores = ncores, SetRNGSeed = SetRNGSeed, verbose = verbose, ...)
+      ncores = ncores, SetRNGSeed = SetRNGSeed, end.impute = end.impute, 
+      verbose = verbose, ...)
     method <- "MICT-timing"
   }
   
   seqimpobj <- list(data = data, imp = imputed, m = m, method = method, 
-      np = np, nf = nf, regr=regr, call = call)
+      np = np, nf = nf, regr = regr, call = call)
   
   oldClass(seqimpobj) <- "seqimp"
   
@@ -184,20 +221,8 @@ seqimpute_standard <- function(data,
   time.covariates = matrix(NA, nrow = 1, ncol = 1), np = 1, nf = 1, m = 1, 
   regr = "multinom", nfi = 1, npt = 1, available = TRUE, pastDistrib = FALSE,
   futureDistrib = FALSE, noise = 0, ParExec = FALSE, ncores = NULL,
-  SetRNGSeed = FALSE, verbose = TRUE, ...)
+  SetRNGSeed = FALSE, end.impute = TRUE, verbose = TRUE, ...)
 {
-  if (inherits(data, "stslist")) {
-    valuesNA <- c(attr(data, "nr"), attr(data, "void"))
-    data <- data.frame(data)
-    data[data == valuesNA[1] | data == valuesNA[2]] <- NA
-  }
-
-  if (sum(is.na(data)) == 0) {
-    if (verbose == TRUE) {
-      message("This dataset has no missing values!")
-    }
-    return(data)
-  }
 
   rownamesDataset <- rownames(data)
   nrowsDataset <- nrow(data)
@@ -317,7 +342,7 @@ seqimpute_standard <- function(data,
           available = available, noise = dataOD$noise, ...)
     }
     # 5. Imputing terminal NAs ----------------------------------------------
-    if ((npt != 0) & (dataOD$MaxTermGapSize != 0)) {
+    if (end.impute == TRUE & (npt != 0) & (dataOD$MaxTermGapSize != 0)) {
       # we only impute the terminal
       # gaps if npt > 0
       if (verbose == TRUE) {

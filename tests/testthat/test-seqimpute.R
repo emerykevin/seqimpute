@@ -320,9 +320,29 @@ test_that("Left SLG", {
   expect_no_error(seqimpute(gameadd.traj, np = 2,m=2))
 })
 
+test_that("Left SLG", {
+  skip_on_cran()
+  expect_no_error(seqimpute(gameadd.traj, np = 2,m=2,available=FALSE))
+})
+
+test_that("Left SLG", {
+  skip_on_cran()
+  expect_no_error(seqimpute(gameadd.traj, np = 2, m=2, pastDistrib=TRUE, futureDistrib=TRUE))
+})
+
 test_that("Right SLG", {
   skip_on_cran()
   expect_no_error(seqimpute(gameadd.traj, nf = 2,m=2))
+})
+
+test_that("Right SLG", {
+  skip_on_cran()
+  expect_no_error(seqimpute(gameadd.traj, nf = 2,m=2,available=FALSE))
+})
+
+test_that("Right SLG", {
+  skip_on_cran()
+  expect_no_error(seqimpute(gameadd.traj, nf = 2,m=2,pastDistrib=TRUE, futureDistrib=TRUE))
 })
 
 test_that("Both SLG", {
@@ -635,6 +655,21 @@ test_that("MICT-t with three rows NA", {
   expect_no_error(seqimpute(gameadd.row.NA.3r,m=2))
 })
 
+
+gameadd.row.NA.twolast <- gameadd.traj
+gameadd.row.NA.twolast[c(499,500),] <- NA
+
+test_that("MICT with two last row NA", {
+  skip_on_cran()
+  expect_no_error(seqimpute(gameadd.row.NA.twolast,m=2))
+})
+
+test_that("MICT-t with two last row NA", {
+  skip_on_cran()
+  expect_no_error(seqimpute(gameadd.row.NA.twolast,m=2))
+})
+
+
 # b. with covariates #####
 gameadd.row.NA.1 <- gameadd
 gameadd.row.NA.1[1,1:4] <- NA
@@ -688,6 +723,21 @@ test_that("MICT-t with three rows NA", {
   expect_no_error(seqimpute(gameadd.row.NA.3r,var=1:4,m=2, covariates=c("Gender","Age")))
 })
 
+
+gameadd.row.NA.twolast <- gameadd
+gameadd.row.NA.twolast[c(499,500),1:4] <- NA
+
+test_that("MICT with two last rows NA", {
+  skip_on_cran()
+  expect_no_error(seqimpute(gameadd.row.NA.twolast,var=1:4,m=2, covariates=c("Gender","Age")))
+})
+
+test_that("MICT-t with two last rows NA", {
+  skip_on_cran()
+  expect_no_error(seqimpute(gameadd.row.NA.twolast,var=1:4,m=2, covariates=c("Gender","Age")))
+})
+
+
 ## B. single imputation #####
 gameadd.row.NA.1 <- gameadd.traj
 gameadd.row.NA.1[1,] <- NA
@@ -699,7 +749,7 @@ test_that("MICT with first row NA", {
 
 test_that("MICT-t with first row NA", {
   skip_on_cran()
-  expect_no_error(seqimpute(gameadd.row.NA.1,m=1))
+  expect_no_error(seqimpute(gameadd.row.NA.1,m=1,timing=T))
 })
 
 gameadd.row.NA.500 <- gameadd.traj
@@ -737,6 +787,20 @@ test_that("MICT with three rows NA", {
 })
 
 test_that("MICT-t with three rows NA", {
+  skip_on_cran()
+  expect_no_error(seqimpute(gameadd.row.NA.3r,m=1))
+})
+
+
+gameadd.row.NA.twolast <- gameadd.traj
+gameadd.row.NA.twolast[c(499,500),] <- NA
+
+test_that("MICT with two last rows NA", {
+  skip_on_cran()
+  expect_no_error(seqimpute(gameadd.row.NA.3r,m=1))
+})
+
+test_that("MICT-t with two last rows NA", {
   skip_on_cran()
   expect_no_error(seqimpute(gameadd.row.NA.3r,m=1))
 })
@@ -790,6 +854,20 @@ test_that("MICT with three rows NA", {
 })
 
 test_that("MICT-t with three rows NA", {
+  skip_on_cran()
+  expect_no_error(seqimpute(gameadd.row.NA.3r,var=1:4,m=1, covariates=c("Gender","Age")))
+})
+
+
+gameadd.row.NA.twolast <- gameadd
+gameadd.row.NA.twolast[c(499,500),1:4] <- NA
+
+test_that("MICT with two last rows NA", {
+  skip_on_cran()
+  expect_no_error(seqimpute(gameadd.row.NA.3r,var=1:4,m=1, covariates=c("Gender","Age")))
+})
+
+test_that("MICT-t with two last rows NA", {
   skip_on_cran()
   expect_no_error(seqimpute(gameadd.row.NA.3r,var=1:4,m=1, covariates=c("Gender","Age")))
 })
@@ -974,7 +1052,7 @@ test_that("MICT - multinom", {
   expect_no_error(seqimpute(gameadd.traj, regr="rf",m=1, num.trees=100))
 })
 
-## 16. one level ####
+# 16. one level ####
 gameadd.traj.1lev <- gameadd.traj
 levels(gameadd.traj.1lev[,3]) <- c("no","no")
 
@@ -1078,4 +1156,91 @@ test_that("MICT - multinom", {
 test_that("MICT - multinom", {
   skip_on_cran()
   expect_no_error(seqimpute(gameadd.traj.1lev, regr="multinom",m=1, timing=T, nf=2, np=2))
+})
+
+# 17. end.impute argument ####
+test_that("MICT timing - end.impute - one imp", {
+  skip_on_cran()
+  expect_no_error(seqimpute(gameadd.traj, regr="multinom", m=1, timing=T, nf=1, np=1, end.impute=TRUE))
+})
+
+test_that("MICT timing - end.impute - one imp - sum miss", {
+  skip_on_cran()
+  expect_equal(sum(is.na(seqimpute(gameadd.traj, regr="multinom", m=1, timing=T, nf=1, np=1, end.impute=FALSE)$imp[[1]])),33)
+})
+
+imp <- seqimpute(gameadd.traj, regr="multinom", m=2, timing=T, nf=1, np=1, end.impute=FALSE)
+
+test_that("MICT timing - end.impute - sum missings in imputed 1", {
+  skip_on_cran()
+  expect_equal(sum(is.na(imp$imp[[1]])),33)
+})
+
+test_that("MICT timing - end.impute - sum missings in imputed 2", {
+  skip_on_cran()
+  expect_equal(sum(is.na(imp$imp[[2]])),33)
+})
+
+test_that("MICT timing - end.impute - nf=2,np=2", {
+  skip_on_cran()
+  expect_equal(sum(is.na(seqimpute(gameadd.traj, regr="multinom", m=1, timing=T, nf=2, np=2, end.impute=FALSE)$imp[[1]])),33)
+})
+
+
+
+test_that("MICT - end.impute - one imp", {
+  skip_on_cran()
+  expect_no_error(seqimpute(gameadd.traj, regr="multinom", m=1, timing=F, nf=1, np=1, end.impute=TRUE))
+})
+
+test_that("MICT - end.impute - one imp - sum miss", {
+  skip_on_cran()
+  expect_equal(sum(is.na(seqimpute(gameadd.traj, regr="multinom", m=1, timing=F, nf=1, np=1, end.impute=FALSE)$imp[[1]])),33)
+})
+
+imp <- seqimpute(gameadd.traj, regr="multinom", m=2, timing=F, nf=1, np=1, end.impute=FALSE)
+
+test_that("MICT - end.impute - sum missings in imputed 1", {
+  skip_on_cran()
+  expect_equal(sum(is.na(imp$imp[[1]])),33)
+})
+
+test_that("MICT - end.impute - sum missings in imputed 2", {
+  skip_on_cran()
+  expect_equal(sum(is.na(imp$imp[[2]])),33)
+})
+
+test_that("MICT - end.impute - nf=2,np=2", {
+  skip_on_cran()
+  expect_equal(sum(is.na(seqimpute(gameadd.traj, regr="multinom", m=1, timing=F, nf=2, np=2, end.impute=FALSE)$imp[[1]])),33)
+})
+
+
+# 18. sequence object ####
+test_that("MICT - end.impute - one imp - sum miss", {
+  skip_on_cran()
+  library("TraMineR")
+  seqgame <- seqdef(gameadd, var=1:4)
+  expect_equal(sum(is.na(seqimpute(seqgame, regr="multinom", m=1, timing=F, nf=1, np=1, end.impute=FALSE)$imp[[1]])),33)
+})
+
+test_that("MICT - end.impute - one imp - sum miss", {
+  skip_on_cran()
+  library("TraMineR")
+  seqgame <- seqdef(gameadd, var=1:4)
+  expect_equal(sum(is.na(seqimpute(seqgame, regr="multinom", m=1, timing=F, nf=1, np=1)$imp[[1]])),0)
+})
+
+test_that("MICT timing - end.impute - one imp - sum miss", {
+  skip_on_cran()
+  library("TraMineR")
+  seqgame <- seqdef(gameadd, var=1:4)
+  expect_equal(sum(is.na(seqimpute(seqgame, regr="multinom", m=1, timing=T, nf=1, np=1, end.impute=FALSE)$imp[[1]])),33)
+})
+
+test_that("MICT timing - end.impute - one imp - sum miss", {
+  skip_on_cran()
+  library("TraMineR")
+  seqgame <- seqdef(gameadd, var=1:4)
+  expect_equal(sum(is.na(seqimpute(seqgame, regr="multinom", m=1, timing=T, nf=1, np=1)$imp[[1]])),0)
 })
