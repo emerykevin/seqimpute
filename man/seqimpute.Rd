@@ -95,8 +95,8 @@ used; if \code{FALSE}, only original data are considered.}
 \item{pastDistrib}{Logical, if \code{TRUE}, includes the past distribution 
 as a predictor in the imputation model.}
 
-\item{futureDistrib}{Logical, if \code{TRUE}, includes the future distribution 
-as a predictor in the imputation model.}
+\item{futureDistrib}{Logical, if \code{TRUE}, includes the future 
+distribution as a predictor in the imputation model.}
 
 \item{...}{Named arguments that are passed down to the imputation functions.}
 }

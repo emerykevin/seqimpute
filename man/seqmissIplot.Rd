@@ -23,16 +23,17 @@ missing values. Applies only to state sequence objects created with
 \link[TraMineR]{seqdef}. Note that the default behavior of \code{seqdef} 
 is to treat missing data at the end of sequences as void elements.}
 
-\item{...}{Additional parameters passed to the \link[TraMineR]{seqIplot} function.}
+\item{...}{Additional parameters passed to the 
+\link[TraMineR]{seqIplot} function.}
 }
 \description{
 This function plots all patterns of missing data within sequences, based on 
 the \link[TraMineR]{seqIplot} function.
 }
 \details{
-This function uses \link[TraMineR]{seqIplot} to visualize all patterns of missing 
-data within sequences. For further customization options, refer to the 
-\link[TraMineR]{seqIplot} documentation.
+This function uses \link[TraMineR]{seqIplot} to visualize all patterns of 
+missing data within sequences. For further customization options, refer to 
+the \link[TraMineR]{seqIplot} documentation.
 }
 \examples{
 # Plot all the patterns of missing data
