@@ -105,8 +105,8 @@
 #' @param pastDistrib Logical, if \code{TRUE}, includes the past distribution 
 #' as a predictor in the imputation model.
 #' 
-#' @param futureDistrib Logical, if \code{TRUE}, includes the future distribution 
-#' as a predictor in the imputation model.
+#' @param futureDistrib Logical, if \code{TRUE}, includes the future 
+#' distribution as a predictor in the imputation model.
 #' @param ... Named arguments that are passed down to the imputation functions.
 #'
 #' @author Kevin Emery <kevin.emery@@unige.ch>, Andre Berchtold,  
