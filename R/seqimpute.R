@@ -92,6 +92,7 @@
 #' parallel computations. Note that setting \code{set.seed()} alone does not 
 #' ensure reproducibility in parallel mode.
 #' 
+#' 
 #' @param end.impute Logical. If \code{FALSE}, missing data at the end of 
 #' sequences will not be imputed.
 #' 
@@ -112,7 +113,23 @@
 #' @author Kevin Emery <kevin.emery@@unige.ch>, Andre Berchtold,  
 #' Anthony Guinchard, and Kamyar Taher
 #'
-#' @return Returns an S3 object of class \code{seqimp}.
+#' @return An object of class \code{seqimp}, which is a list with the following 
+#' elements:
+#' \describe{
+#'   \item{\code{data}}{A \code{data.frame} containing the original 
+#'   (incomplete) data.}
+#'   \item{\code{imp}}{A list of \code{m} \code{data.frame} corresponding to 
+#'   the imputed datasets.}
+#'   \item{\code{m}}{The number of imputations.}
+#'   \item{\code{method}}{A character vector specifying whether MICT or 
+#'   MICT-timing was used.}
+#'   \item{\code{np}}{Number of prior states included in the imputation model.}
+#'   \item{\code{nf}}{Number of subsequent states included in the imputation 
+#'   model.}
+#'   \item{\code{regr}}{A character vector specifying whether multinomial or
+#'   random forest imputation models were applied.}
+#'   \item{\code{call}}{The call that created the object.}
+#' }
 #'
 #' @examples
 #'
@@ -202,7 +219,7 @@ seqimpute <- function(data, var = NULL, np = 1, nf = 1, m = 5, timing = FALSE,
       available = available, pastDistrib = pastDistrib,
       futureDistrib = futureDistrib, noise = 0, ParExec = ParExec, 
       ncores = ncores, SetRNGSeed = SetRNGSeed, end.impute = end.impute, 
-      verbose = verbose, ...)
+      verbose = verbose, frame.radius=frame.radius,...)
     method <- "MICT-timing"
   }
   
