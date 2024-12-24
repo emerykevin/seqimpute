@@ -752,6 +752,18 @@ test_that("MICT-t with first row NA", {
   expect_no_error(seqimpute(gameadd.row.NA.1,m=1,timing=T))
 })
 
+gameadd.row.NA.1 <- gameadd
+gameadd.row.NA.1[1,1:4] <- NA
+test_that("MICT with first row NA", {
+  skip_on_cran()
+  expect_no_error(seqimpute(gameadd.row.NA.1,m=1, var=1:4, covariates=5, time.covariates=8:11))
+})
+
+test_that("MICT-t with first row NA", {
+  skip_on_cran()
+  expect_no_error(seqimpute(gameadd.row.NA.1,m=1,timing=T, var=1:4, covariates=5,time.covariates = 8:11))
+})
+
 gameadd.row.NA.500 <- gameadd.traj
 gameadd.row.NA.500[500,] <- NA
 

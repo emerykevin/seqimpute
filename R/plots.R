@@ -73,8 +73,8 @@ seqmissfplot <- function(data, var = NULL, with.complete = TRUE,
       misspatterns <- misspatterns[rowSums(misspatterns=="missing")!=0,]
     }
     seqtest <- suppressMessages(TraMineR::seqdef(misspatterns, 
-              alphabet = c("not missing", "missing"), cpal = c("blue", "red"), 
-              xtstep = attr(seqmiss, "xtstep")))
+        alphabet = c("not missing", "missing"), cpal = c("#4F91CD","#E34A33"), 
+        xtstep = attr(seqmiss, "xtstep")))
     
     TraMineR::seqfplot(seqtest, ...)
     
@@ -88,7 +88,7 @@ seqmissfplot <- function(data, var = NULL, with.complete = TRUE,
       misspatterns <- misspatterns[rowSums(misspatterns=="missing")!=0,]
     }
     seqtest <- suppressMessages(TraMineR::seqdef(misspatterns, 
-        alphabet = c("not missing", "missing"), cpal = c("blue", "red"), 
+        alphabet = c("not missing", "missing"), cpal = c("#4F91CD","#E34A33"), 
         xtstep = attr(seqmiss, "xtstep")))
     
     TraMineR::seqfplot(seqtest, ...)
@@ -160,8 +160,8 @@ seqmissIplot <- function(data, var = NULL, with.complete = TRUE,
       misspatterns <- misspatterns[rowSums(misspatterns=="missing")!=0,]
     }
     seqtest <- suppressMessages(TraMineR::seqdef(misspatterns, 
-          alphabet = c("not missing", "missing"), cpal = c("blue", "red"), 
-          xtstep = attr(seqmiss, "xtstep")))
+        alphabet = c("not missing", "missing"), cpal = c("#4F91CD","#E34A33"), 
+        xtstep = attr(seqmiss, "xtstep")))
     
     TraMineR::seqIplot(seqtest, ...)
     
@@ -175,8 +175,8 @@ seqmissIplot <- function(data, var = NULL, with.complete = TRUE,
       misspatterns <- misspatterns[rowSums(misspatterns=="missing")!=0,]
     }
     seqtest <- suppressMessages(TraMineR::seqdef(misspatterns, 
-          alphabet = c("not missing", "missing"), cpal = c("blue", "red"), 
-          xtstep = attr(seqmiss, "xtstep")))
+        alphabet = c("not missing", "missing"), cpal = c("#4F91CD","#E34A33"), 
+        xtstep = attr(seqmiss, "xtstep")))
     
     TraMineR::seqIplot(seqtest, ...)
   }
@@ -202,8 +202,9 @@ seqmissIplot <- function(data, var = NULL, with.complete = TRUE,
 #' 
 #' @param void.miss Logical, if \code{TRUE}, treats void elements as 
 #' missing values. This argument applies only to state sequence objects created 
-#' with \link[TraMineR]{seqdef}. Note that the default behavior of \code{seqdef} 
-#' is to treat missing data at the end of sequences as void elements.
+#' with \link[TraMineR]{seqdef}. Note that the default behavior of 
+#' \link[TraMineR]{seqdef} is to treat missing data at the end of sequences as 
+#' void elements.
 #' @param ... parameters to be passed to the \link[TraMineRextras]{seqimplic}
 #' function
 #' 

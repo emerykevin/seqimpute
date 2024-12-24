@@ -92,6 +92,7 @@
 #' parallel computations. Note that setting \code{set.seed()} alone does not 
 #' ensure reproducibility in parallel mode.
 #' 
+#' 
 #' @param end.impute Logical. If \code{FALSE}, missing data at the end of 
 #' sequences will not be imputed.
 #' 
@@ -112,7 +113,23 @@
 #' @author Kevin Emery <kevin.emery@@unige.ch>, Andre Berchtold,  
 #' Anthony Guinchard, and Kamyar Taher
 #'
-#' @return Returns an S3 object of class \code{seqimp}.
+#' @return An object of class \code{seqimp}, which is a list with the following 
+#' elements:
+#' \describe{
+#'   \item{\code{data}}{A \code{data.frame} containing the original 
+#'   (incomplete) data.}
+#'   \item{\code{imp}}{A list of \code{m} \code{data.frame} corresponding to 
+#'   the imputed datasets.}
+#'   \item{\code{m}}{The number of imputations.}
+#'   \item{\code{method}}{A character vector specifying whether MICT or 
+#'   MICT-timing was used.}
+#'   \item{\code{np}}{Number of prior states included in the imputation model.}
+#'   \item{\code{nf}}{Number of subsequent states included in the imputation 
+#'   model.}
+#'   \item{\code{regr}}{A character vector specifying whether multinomial or
+#'   random forest imputation models were applied.}
+#'   \item{\code{call}}{The call that created the object.}
+#' }
 #'
 #' @examples
 #'
@@ -174,20 +191,20 @@ seqimpute <- function(data, var = NULL, np = 1, nf = 1, m = 5, timing = FALSE,
   }else{
     covariates <- covxtract(data, covariates)
     time.covariates <- covxtract(data, time.covariates)
-    
+
     data <- dataxtract(data, var)
   }
   
-  if (sum(is.na(data)) == 0) {
-    if (verbose == TRUE) {
-      message("This dataset has no missing values!")
-    }
-    return(data)
-  }
+  # if (sum(is.na(data)) == 0) {
+  #   if (verbose == TRUE) {
+  #     message("This dataset has no missing values!")
+  #   }
+  #   return(data)
+  # }
   
   
   if (timing == FALSE) {
-    imputed <- seqimpute_standard(data,
+    imputed <- seqimpute_standard(data, var,
       np = np, nf = nf, m = m, covariates = covariates,
       time.covariates = time.covariates, regr = regr, nfi = nfi, npt = npt,
       available = available, pastDistrib = pastDistrib,
@@ -196,13 +213,13 @@ seqimpute <- function(data, var = NULL, np = 1, nf = 1, m = 5, timing = FALSE,
       verbose = verbose, ...)
     method <- "MICT"
   }else {
-    imputed <- seqimpute_timing(data,
+    imputed <- seqimpute_timing(data, var,
       np = np, nf = nf, m = m, covariates = covariates,
       time.covariates = time.covariates, regr = regr, nfi = nfi, npt = npt,
       available = available, pastDistrib = pastDistrib,
       futureDistrib = futureDistrib, noise = 0, ParExec = ParExec, 
       ncores = ncores, SetRNGSeed = SetRNGSeed, end.impute = end.impute, 
-      verbose = verbose, ...)
+      verbose = verbose, frame.radius=frame.radius,...)
     method <- "MICT-timing"
   }
   
@@ -216,7 +233,7 @@ seqimpute <- function(data, var = NULL, np = 1, nf = 1, m = 5, timing = FALSE,
 }
 
 
-seqimpute_standard <- function(data, 
+seqimpute_standard <- function(data, var=NULL,
   covariates = matrix(NA, nrow = 1, ncol = 1), 
   time.covariates = matrix(NA, nrow = 1, ncol = 1), np = 1, nf = 1, m = 1, 
   regr = "multinom", nfi = 1, npt = 1, available = TRUE, pastDistrib = FALSE,
@@ -226,32 +243,32 @@ seqimpute_standard <- function(data,
 
   rownamesDataset <- rownames(data)
   nrowsDataset <- nrow(data)
-
-  # 0. Initial tests and manipulations on parameters --------------------------
-  dataOD <- preliminaryChecks(OD = data, CO = covariates, 
-    COt = time.covariates, np = np, nf = nf, nfi = nfi, npt = npt, 
-    pastDistrib = pastDistrib, futureDistrib = futureDistrib)
   
-  dataOD[c("pastDistrib", "futureDistrib", "totV", "totVi", "totVt", 
-    "noise")] <- InitCorectControl(regr, dataOD$ODClass, dataOD$OD, dataOD$nr, 
-    dataOD$nc, dataOD$k, np, nf, dataOD$nco, dataOD$ncot, nfi, npt, 
-    pastDistrib, futureDistrib, dataOD$totV, dataOD$totVi, dataOD$totVt, noise)
+  dataOD <- preliminaryChecks(data, covariates, time.covariates,var=var)
+  
+  if (sum(is.na(dataOD$OD)) == 0) {
+    if (verbose == TRUE) {
+      message("This dataset has no missing values!")
+    }
+    return(dataOD$OD)
+  }
+  
+  tmp <- check.predictors(np, nf, nfi, npt)
+  np <- tmp$np
+  nf <- tmp$nf
+  nfi <- tmp$nfi
+  npt <- tmp$npt
+  
+  regr <- check.regr(regr)
+  dataOD$ncot <- check.ncot(dataOD$ncot,dataOD$nc)
   
   # 1. Analysis of OD and creation of matrices ORDER, ORDER2 and ORDER3 
-  dataOD[c("MaxInitGapSize", "InitGapSize", "MaxTermGapSize", "TermGapSize", 
-    "MaxGap", "ORDER", "ORDER2", "ORDER3")] <- OrderCreation(dataOD$OD, 
-    dataOD$nr, dataOD$nc)
-  # 2. Computation of the order of imputation of each MD 
-  if (max(dataOD$ORDER) != 0) {
-    dataOD[c("ORDERSLGLeft", "ORDERSLGRight", "ORDERSLGBoth", "LongGap", 
-      "MaxGap", "REFORD_L", "ORDER")] <- ImputeOrderComputation(dataOD$ORDER, 
-      dataOD$ORDER3, dataOD$MaxGap, np, nf, dataOD$nr, dataOD$nc)
-  } else {
-    dataOD$ORDERSLGLeft <- matrix(nrow = dataOD$nr, ncol = dataOD$nc, 0)
-    dataOD$ORDERSLGRight <- matrix(nrow = dataOD$nr, ncol = dataOD$nc, 0)
-    dataOD$ORDERSLGBoth <- matrix(nrow = dataOD$nr, ncol = dataOD$nc, 0)
-    dataOD$LongGap <- FALSE
-  }
+  dataOD[c("InitGapSize","MaxInitGapSize", "TermGapSize", "MaxTermGapSize",
+            "ORDERSLGLeft", "ORDERSLGRight", "ORDERSLGBoth", "LongGap", 
+            "MaxGap", "REFORD_L","ORDER","REFORDI_L","REFORDT_L")] <- OrderCreation(dataOD$OD, dataOD$nr, 
+                                                            dataOD$nc, np, nf, npt, nfi, end.impute)
+  
+  
 
   # Setting parallel or sequential backend and  random seed
   if (ParExec & (parallel::detectCores() > 2 & m > 1)) {
@@ -317,15 +334,14 @@ seqimpute_standard <- function(data,
       }
       dataOD[["ODi"]] <- ModelImputation(OD = dataOD$OD, 
           covariates = dataOD$CO, time.covariates = dataOD$COt, 
-          ODi = dataOD$ODi, MaxGap = dataOD$MaxGap, totV = dataOD$totV, 
-          totVi = dataOD$totVi, regr = regr, nc = dataOD$nc, np = np, nf = nf, 
+          ODi = dataOD$ODi, MaxGap = dataOD$MaxGap, regr = regr, nc = dataOD$nc, 
+          np = np, nf = nf, 
           nr = dataOD$nr, ncot = dataOD$ncot, COtsample = dataOD$COtsample, 
-          pastDistrib = dataOD$pastDistrib, 
-          futureDistrib = dataOD$futureDistrib, k = dataOD$k, 
+          pastDistrib = pastDistrib, 
+          futureDistrib = futureDistrib, k = dataOD$k, 
           available = available, REFORD_L = dataOD$REFORD_L, 
           noise = dataOD$noise, verbose,...)
     }
-    # 4. Imputing initial NAs ---------------------------------------------
     if ((nfi != 0) & (dataOD$MaxInitGapSize != 0)){ 
       if (verbose == TRUE) {
         print("Imputation of the initial gaps...")
@@ -333,8 +349,8 @@ seqimpute_standard <- function(data,
       # # we only impute the initial gaps if nfi > 0
       dataOD[["ODi"]] <- ImputingInitialNAs(OD = dataOD$OD, 
           covariates = dataOD$CO, time.covariates = dataOD$COt, 
-          ODi = dataOD$ODi, totVi = dataOD$totVi, COtsample = dataOD$COtsample,
-          futureDistrib = dataOD$futureDistrib, 
+          ODi = dataOD$ODi, COtsample = dataOD$COtsample,
+          futureDistrib = futureDistrib, 
           InitGapSize = dataOD$InitGapSize, 
           MaxInitGapSize = dataOD$MaxInitGapSize, nr = dataOD$nr, 
           nc = dataOD$nc, ud = dataOD$ud, nco = dataOD$nco, 
@@ -352,9 +368,9 @@ seqimpute_standard <- function(data,
           covariates = dataOD$CO, time.covariates = dataOD$COt, 
           ODi = dataOD$ODi, COtsample = dataOD$COtsample, 
           MaxTermGapSize = dataOD$MaxTermGapSize, 
-          TermGapSize = dataOD$TermGapSize, pastDistrib = dataOD$pastDistrib, 
+          TermGapSize = dataOD$TermGapSize, pastDistrib = pastDistrib, 
           regr = regr, npt = npt, nco = dataOD$nco, ncot = dataOD$ncot, 
-          totVt = dataOD$totVt, nr = dataOD$nr, nc = dataOD$nc, ud = dataOD$ud, 
+          nr = dataOD$nr, nc = dataOD$nc, ud = dataOD$ud, 
           available = available, k = dataOD$k, noise = dataOD$noise, ...)
     }
     # 6. Imputing SLG NAs --------------------------------------------------
@@ -367,8 +383,8 @@ seqimpute_standard <- function(data,
       dataOD[["ODi"]] <- LSLGNAsImpute(OD = dataOD$OD, ODi = dataOD$ODi, 
           covariates = dataOD$CO, time.covariates = dataOD$COt, 
           COtsample = dataOD$COtsample, ORDERSLG = dataOD$ORDERSLGLeft,
-          pastDistrib = dataOD$pastDistrib, 
-          futureDistrib = dataOD$futureDistrib, regr = regr, np = np, 
+          pastDistrib = pastDistrib, 
+          futureDistrib = futureDistrib, regr = regr, np = np, 
           nr = dataOD$nr, nf = nf, nc = dataOD$nc, 
           ud = dataOD$ud, ncot = dataOD$ncot,nco = dataOD$nco, k = dataOD$k, 
           noise = dataOD$noise, available = available, ...)
@@ -383,8 +399,8 @@ seqimpute_standard <- function(data,
       dataOD[["ODi"]] <- RSLGNAsImpute(OD = dataOD$OD, ODi = dataOD$ODi, 
           covariates = dataOD$CO, time.covariates = dataOD$COt, 
           COtsample = dataOD$COtsample, ORDERSLGRight = dataOD$ORDERSLGRight,
-          pastDistrib = dataOD$pastDistrib, 
-          futureDistrib = dataOD$futureDistrib, regr = regr, np = np, 
+          pastDistrib = pastDistrib, 
+          futureDistrib = futureDistrib, regr = regr, np = np, 
           nr = dataOD$nr, nf = nf, nc = dataOD$nc, 
           ud = dataOD$ud, ncot = dataOD$ncot,nco = dataOD$nco, k = dataOD$k, 
           noise = dataOD$noise, available = available, ...)
@@ -408,8 +424,8 @@ seqimpute_standard <- function(data,
           dataOD[["ODi"]] <- RSLGNAsImpute(OD = dataOD$OD, ODi = dataOD$ODi, 
               covariates = dataOD$CO, time.covariates = dataOD$COt, 
               COtsample = dataOD$COtsample, ORDERSLGRight = tmpORDER,
-              pastDistrib = dataOD$pastDistrib, 
-              futureDistrib = dataOD$futureDistrib, regr = regr, np = h - 1, 
+              pastDistrib = pastDistrib, 
+              futureDistrib = futureDistrib, regr = regr, np = h - 1, 
               nr = dataOD$nr, nf = nf, nc = dataOD$nc, ud = dataOD$ud, 
               ncot = dataOD$ncot, nco = dataOD$nco, k = dataOD$k, 
               noise = dataOD$noise, available = available, ...)
