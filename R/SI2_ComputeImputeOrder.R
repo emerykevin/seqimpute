@@ -26,8 +26,18 @@ ImputeOrderComputation <- function(ORDER, ORDER3, MaxGap, np, nf, nr, nc) {
     Ord_temp_L$tempMinGapLeft, Ord_temp_L$tempMinGapRight, 
     Ord_temp_L$tempMaxGapLeft, Ord_temp_L$tempMaxGapRight)
 
+
+  # Dummy that capture if there are gaps that are both too close to the
+  # right edge of the sequence and the left edge of the sequence. It will
+  # be imputed as a special case later on.
+
+
+  # /!\ Final version of the matrix ORDER that we use through point 3.1 to
+  # 3.3 of the program
+
   ORDER <- ORDER-ORDList$ORDERSLGLeft-ORDList$ORDERSLGRight-ORDList$ORDERSLGBoth
 
+  # 2.4. Creation of matrices REFORD -------------------------------------------
   if (max(ORDER) != 0) {
     ORDList[c("MaxGap", "REFORD_L", "ORDER")] <- REFORDInit(ORDER, nr, nc)
   } else {
@@ -284,9 +294,8 @@ ORDERSLGCreation <- function(ORDER, nr, nc, np, nf) {
       }
     }
   }
-  return(list(ORDERSLG=ORDERSLG, tempMinGapLeft=tempMinGapLeft, 
-              tempMaxGapLeft=tempMaxGapLeft, tempMinGapRight=tempMinGapRight,
-              tempMaxGapRight=tempMaxGapRight))
+  return(list(ORDERSLG, tempMinGapLeft, tempMaxGapLeft, 
+    tempMinGapRight, tempMaxGapRight))
 }
 
 
@@ -333,6 +342,5 @@ ORDERSLGLRCompute <- function(nr, nc, ORDERSLG, tempMinGapLeft,
     ORDERSLGLeft[ORDERSLGBoth != 0] <- 0
   }
 
-  return(list(ORDERSLGLeft=ORDERSLGLeft, ORDERSLGRight=ORDERSLGRight, 
-              ORDERSLGBoth=ORDERSLGBoth, LongGap=LongGap))
+  return(list(ORDERSLGLeft, ORDERSLGRight, ORDERSLGBoth, LongGap))
 }

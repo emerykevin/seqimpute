@@ -6,7 +6,7 @@
 
 ImputingTerminalNAs <- function(OD, covariates, time.covariates, ODi, 
   COtsample, MaxTermGapSize, TermGapSize, pastDistrib, regr, npt, nco, ncot, 
-  nr, nc, ud, available, k, noise, ...)
+  totVt, nr, nc, ud, available, k, noise, ...)
 {
   # 5.1.-2. Creation of ORDERT -------------------------------------------------
   REFORDT_L <- REFORDTCreation(nr, nc, TermGapSize, MaxTermGapSize)
@@ -15,6 +15,10 @@ ImputingTerminalNAs <- function(OD, covariates, time.covariates, ODi,
   # -> npt is therefore reduced
   if (npt > nc - MaxTermGapSize) {
     npt <- nc - MaxTermGapSize
+    totVt <- 1 + npt + nco + (ncot / nc)
+    if (pastDistrib) {
+      totVt <- totVt + k
+    }
   }
   # 5.3. Imputation using a specific model -------------------------------------
 
@@ -23,10 +27,10 @@ ImputingTerminalNAs <- function(OD, covariates, time.covariates, ODi,
     pastDistrib, npt, nr, nc, ncot, k)
   # 5.3.2 Computation of the model (Dealing with the LOCATIONS of imputation) --
   log_CD <- list()
-  log_CD[c("reglog", "CD")] <- ComputeModel(CD, regr, npt, 0, k, ...)
+  log_CD[c("reglog", "CD")] <- ComputeModel(CD, regr, totVt, npt, 0, k, ...)
   # 5.3.3 Imputation using the just created model 
   ODi <- TerminalCreatedModelImputation(covariates, OD, log_CD$CD, ODi, 
-    time.covariates, nc, ncot, REFORDT_L, pastDistrib, MaxTermGapSize, 
+    time.covariates, nc, ncot, totVt, REFORDT_L, pastDistrib, MaxTermGapSize, 
     available, regr, log_CD$reglog, k, npt, noise)
 
   return(ODi)
@@ -178,7 +182,7 @@ TerminalCDMatCreate <- function(CO, OD, COt, COtsample, pastDistrib, npt, nr,
 # Imputation of the terminal created model
 
 TerminalCreatedModelImputation <- function(CO, OD, CD, ODi, COt, nc, ncot, 
-  REFORDT_L, pastDistrib, MaxTermGapSize, available, regr, reglog, k, 
+  totVt, REFORDT_L, pastDistrib, MaxTermGapSize, available, regr, reglog, k, 
   npt, noise)
 {
   # Conversion of ODi from data.frame to matrix
@@ -288,7 +292,7 @@ TerminalCreatedModelImputation <- function(CO, OD, CD, ODi, COt, nc, ncot,
       CDi <- COtselectionSpe(CDi, COt, ncot, nc, i, j, k)
 
       # Check for missing-values among predictors
-      if (max(is.na(CDi[1, 2:ncol(CDi)])) == 0) {
+      if (max(is.na(CDi[1, 2:totVt])) == 0) {
         ODi <- RegrImpute(ODi, CDi, regr, reglog, noise, i, j, k)
       }
     }

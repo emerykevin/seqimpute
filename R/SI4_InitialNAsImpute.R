@@ -4,7 +4,7 @@
 ################################################################################
 # Impute initial NAs
 
-ImputingInitialNAs <- function(OD, covariates, time.covariates, ODi, 
+ImputingInitialNAs <- function(OD, covariates, time.covariates, ODi, totVi, 
   COtsample, futureDistrib, InitGapSize, MaxInitGapSize, nr, nc, ud, nco, ncot, 
   nfi, regr, k, available, noise, ...) 
 {
@@ -16,7 +16,10 @@ ImputingInitialNAs <- function(OD, covariates, time.covariates, ODi,
   # -> nfi is therefore reduced
   if (nfi > nc - MaxInitGapSize) {
     nfi <- nc - MaxInitGapSize
-    
+    totVi <- 1 + nfi + nco + (ncot / nc)
+    if (futureDistrib) {
+      totVi <- totVi + k
+    }
   }
   # 4.3. Imputation using a specific model -------------------------------------
 
@@ -26,11 +29,11 @@ ImputingInitialNAs <- function(OD, covariates, time.covariates, ODi,
 
   # 4.3.2 Computation of the model (Dealing with the LOCATIONS of imputation) --
   log_CD <- list()
-  log_CD[c("reglog", "CD")] <- ComputeModel(CD, regr, 0, nfi, k, ...)
+  log_CD[c("reglog", "CD")] <- ComputeModel(CD, regr, totVi, 0, nfi, k, ...)
 
   # 4.3.3 Imputation using the just created model 
   ODi <- Init_NA_CreatedModelImputation(OD, ODi, covariates, log_CD$CD, 
-    time.covariates, MaxInitGapSize, REFORDI_L, futureDistrib, nc, k, 
+    time.covariates, MaxInitGapSize, REFORDI_L, futureDistrib, totVi, nc, k, 
     nfi, ncot, regr, log_CD$reglog, noise, available)
   return(ODi)
 }
@@ -183,7 +186,7 @@ CDMatCreate <- function(CO, COtsample, OD, COt, nfi, nr, nc,
 # Imputation using the just created model 
 
 Init_NA_CreatedModelImputation <- function(OD, ODi, CO, CD, COt, 
-  MaxInitGapSize, REFORDI_L, futureDistrib, nc, k, nfi, ncot, regr, 
+  MaxInitGapSize, REFORDI_L, futureDistrib, totVi, nc, k, nfi, ncot, regr, 
   reglog, noise, available)
 {
   # Conversion of ODi from data.frame to matrix
@@ -294,7 +297,7 @@ Init_NA_CreatedModelImputation <- function(OD, ODi, CO, CD, COt,
       CDi <- COtselectionSpe(CDi, COt, ncot, nc, i, j, k)
 
       # Check for missing-values among predictors
-      if (max(is.na(CDi[1, 2:ncol(CDi)])) == 0) {
+      if (max(is.na(CDi[1, 2:totVi])) == 0) {
         ODi <- RegrImpute(ODi, CDi, regr, reglog, noise, i, j, k)
       }
     }
