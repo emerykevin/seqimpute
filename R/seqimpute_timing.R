@@ -1,23 +1,13 @@
-seqimpute_timing <- function(dataOD, var, imporder, regr = "multinom", np = 1, nf = 0, nfi = 1, 
+seqimpute_timing <- function(dataOD, imporder, regr = "multinom", np = 1, nf = 0, nfi = 1, 
   npt = 1, available = TRUE, covariates = matrix(NA, nrow = 1, ncol = 1),
   time.covariates = matrix(NA, nrow = 1, ncol = 1), pastDistrib = FALSE,
-  futureDistrib = FALSE, noise=0, m = 1, SetRNGSeed = FALSE, 
-  end.impute = TRUE, ParExec = TRUE, 
-  ncores = NULL, frame.radius = 0, verbose = TRUE, ...)
+  futureDistrib = FALSE, m = 1, frame.radius = 0, verbose = TRUE, ...)
 {
   
-  dataOD <- preliminaryChecks(dataOD, covariates, time.covariates,var=var)
+  #dataOD <- preliminaryChecks(dataOD, covariates, time.covariates,var=var)
   
-  rownamesDataset <- rownames(dataOD$OD)
-  nrowsDataset <- nrow(dataOD$OD)
+ 
   noise <- 0
-  
-  if (sum(is.na(dataOD$OD)) == 0) {
-    if (verbose == TRUE) {
-      message("This dataset has no missing values!")
-    }
-    return(dataOD$OD)
-  }
   
   tmp <- check.predictors(np, nf, nfi, npt)
   np <- tmp$np
@@ -28,60 +18,59 @@ seqimpute_timing <- function(dataOD, var, imporder, regr = "multinom", np = 1, n
   regr <- check.regr(regr)
   dataOD$ncot <- check.ncot(dataOD$ncot,dataOD$nc)
   
-  imporder <- OrderCreation(dataOD$OD, dataOD$nr, dataOD$nc, np, nf, npt, nfi, end.impute)
-  # Setting parallel or sequential backend and  random seed
-  if (ParExec & (parallel::detectCores() > 2 & m > 1)) {
-    if (is.null(ncores)) {
-      Ncpus <- min(m, parallel::detectCores() - 1)
-    } else {
-      Ncpus <- min(ncores, parallel::detectCores() - 1)
-    }
-    cl <- parallel::makeCluster(Ncpus)
-    doSNOW::registerDoSNOW(cl) 
-    if (SetRNGSeed) {
-      doRNG::registerDoRNG(SetRNGSeed)
-    }
-    # set progress bar for parallel processing
-    pb <- txtProgressBar(max = m, style = 3)
-    progress <- function(n) setTxtProgressBar(pb, n)
-    opts <- list(progress = progress)
-
-    # condition used to run code part needed for parallel processing
-    ParParams <- TRUE
-  } else {
-    if (ParExec & m == 1) {
-      if (verbose == TRUE) {
-        message(paste("/!\\ The number of multiple imputations is 1, 
-          parallel processing is only available for m > 1."))
-      }
-    } else if (ParExec) {
-      if (verbose == TRUE) {
-        message(paste("/!\\ The number of cores of your processor does not 
-        allow paralell processing, at least 3 cores are needed."))
-      }
-    }
-
-    if (SetRNGSeed) {
-      set.seed(SetRNGSeed)
-    }
-
-    foreach::registerDoSEQ()
-    opts <- NULL
-
-    # condition used to run code part needed for sequential processing
-    ParParams <- FALSE
-  }
-
-
-  # Beginning of the multiple imputation (imputing "mi" times)
-  o <- NULL
-  RESULT <- foreach(o = 1:m, .inorder = TRUE, 
-    .options.snow = opts) %dopar% {
-    if (!ParParams) {
-      if (verbose == TRUE) {
-        cat("iteration :", o, "/", m, "\n")
-      }
-    }
+  # # Setting parallel or sequential backend and  random seed
+  # if (ParExec & (parallel::detectCores() > 2 & m > 1)) {
+  #   if (is.null(ncores)) {
+  #     Ncpus <- min(m, parallel::detectCores() - 1)
+  #   } else {
+  #     Ncpus <- min(ncores, parallel::detectCores() - 1)
+  #   }
+  #   cl <- parallel::makeCluster(Ncpus)
+  #   doSNOW::registerDoSNOW(cl) 
+  #   if (SetRNGSeed) {
+  #     doRNG::registerDoRNG(SetRNGSeed)
+  #   }
+  #   # set progress bar for parallel processing
+  #   pb <- txtProgressBar(max = m, style = 3)
+  #   progress <- function(n) setTxtProgressBar(pb, n)
+  #   opts <- list(progress = progress)
+  # 
+  #   # condition used to run code part needed for parallel processing
+  #   ParParams <- TRUE
+  # } else {
+  #   if (ParExec & m == 1) {
+  #     if (verbose == TRUE) {
+  #       message(paste("/!\\ The number of multiple imputations is 1, 
+  #         parallel processing is only available for m > 1."))
+  #     }
+  #   } else if (ParExec) {
+  #     if (verbose == TRUE) {
+  #       message(paste("/!\\ The number of cores of your processor does not 
+  #       allow paralell processing, at least 3 cores are needed."))
+  #     }
+  #   }
+  # 
+  #   if (SetRNGSeed) {
+  #     set.seed(SetRNGSeed)
+  #   }
+  # 
+  #   foreach::registerDoSEQ()
+  #   opts <- NULL
+  # 
+  #   # condition used to run code part needed for sequential processing
+  #   ParParams <- FALSE
+  # }
+  # 
+  # 
+  # # Beginning of the multiple imputation (imputing "mi" times)
+  # o <- NULL
+  # RESULT <- foreach(o = 1:m, .inorder = TRUE, 
+  #   .options.snow = opts) %dopar% {
+  #   if (!ParParams) {
+  #     if (verbose == TRUE) {
+  #       cat("iteration :", o, "/", m, "\n")
+  #     }
+  #   }
     
     if (max(imporder$ORDER)> 0) {
       if (verbose) {
@@ -162,22 +151,22 @@ seqimpute_timing <- function(dataOD, var, imporder, regr = "multinom", np = 1, n
 
     # Updating the matrix RESULT used to store the multiple imputations
       return(dataOD$ODi)
-    }
-  if (ParParams) {
-    parallel::stopCluster(cl)
-  }
-  
-  names(RESULT) <- paste0("imp",1:m)
-  
-  # RESULT <- rbind(cbind(replicate(dataOD$nr, 0), dataOD$OD), RESULT)
-  
-  RESULT <- lapply(RESULT,FinalResultConvert, ODClass = dataOD$ODClass,
-      ODlevels = dataOD$ODlevels, rownamesDataset = rownamesDataset, 
-      nrowsDataset = nrowsDataset, nr = dataOD$nr, nc = dataOD$nc, 
-      rowsNA = dataOD$rowsNA, mi = m)
-  
-  return(RESULT)
-  
+  #   }
+  # if (ParParams) {
+  #   parallel::stopCluster(cl)
+  # }
+  # 
+  # names(RESULT) <- paste0("imp",1:m)
+  # 
+  # # RESULT <- rbind(cbind(replicate(dataOD$nr, 0), dataOD$OD), RESULT)
+  # 
+  # RESULT <- lapply(RESULT,FinalResultConvert, ODClass = dataOD$ODClass,
+  #     ODlevels = dataOD$ODlevels, rownamesDataset = rownamesDataset, 
+  #     nrowsDataset = nrowsDataset, nr = dataOD$nr, nc = dataOD$nc, 
+  #     rowsNA = dataOD$rowsNA, mi = m)
+  # 
+  # return(RESULT)
+  # 
   
 }
 

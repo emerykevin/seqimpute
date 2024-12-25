@@ -184,6 +184,13 @@ seqimpute <- function(data, var = NULL, np = 1, nf = 1, m = 5, timing = FALSE,
   call <- match.call()
   check.deprecated(...)
   
+  # if (sum(is.na(data)) == 0) {
+  #   if (verbose == TRUE) {
+  #     message("This dataset has no missing values!")
+  #   }
+  #   return(data)
+  # }
+  
   if (inherits(data, "stslist")) {
     valuesNA <- c(attr(data, "nr"), attr(data, "void"))
     data <- data.frame(data)
@@ -195,55 +202,6 @@ seqimpute <- function(data, var = NULL, np = 1, nf = 1, m = 5, timing = FALSE,
     data <- dataxtract(data, var)
   }
   
-  # if (sum(is.na(data)) == 0) {
-  #   if (verbose == TRUE) {
-  #     message("This dataset has no missing values!")
-  #   }
-  #   return(data)
-  # }
-  
-  
-  if (timing == FALSE) {
-    imputed <- seqimpute_standard(data, var,
-      np = np, nf = nf, m = m, covariates = covariates,
-      time.covariates = time.covariates, regr = regr, nfi = nfi, npt = npt,
-      available = available, pastDistrib = pastDistrib,
-      futureDistrib = futureDistrib, noise = 0, ParExec = ParExec, 
-      ncores = ncores, SetRNGSeed = SetRNGSeed, end.impute = end.impute, 
-      verbose = verbose, ...)
-    method <- "MICT"
-  }else {
-    imputed <- seqimpute_timing(data, var,
-      np = np, nf = nf, m = m, covariates = covariates,
-      time.covariates = time.covariates, regr = regr, nfi = nfi, npt = npt,
-      available = available, pastDistrib = pastDistrib,
-      futureDistrib = futureDistrib, noise = 0, ParExec = ParExec, 
-      ncores = ncores, SetRNGSeed = SetRNGSeed, end.impute = end.impute, 
-      verbose = verbose, frame.radius=frame.radius,...)
-    method <- "MICT-timing"
-  }
-  
-  seqimpobj <- list(data = data, imp = imputed, m = m, method = method, 
-      np = np, nf = nf, regr = regr, call = call)
-  
-  oldClass(seqimpobj) <- "seqimp"
-  
-  
-  seqimpobj
-}
-
-
-seqimpute_standard <- function(data, var=NULL,
-  covariates = matrix(NA, nrow = 1, ncol = 1), 
-  time.covariates = matrix(NA, nrow = 1, ncol = 1), np = 1, nf = 1, m = 1, 
-  regr = "multinom", nfi = 1, npt = 1, available = TRUE, pastDistrib = FALSE,
-  futureDistrib = FALSE, noise = 0, ParExec = FALSE, ncores = NULL,
-  SetRNGSeed = FALSE, end.impute = TRUE, verbose = TRUE, ...)
-{
-
-  rownamesDataset <- rownames(data)
-  nrowsDataset <- nrow(data)
-  
   dataOD <- preliminaryChecks(data, covariates, time.covariates,var=var)
   
   if (sum(is.na(dataOD$OD)) == 0) {
@@ -253,23 +211,13 @@ seqimpute_standard <- function(data, var=NULL,
     return(dataOD$OD)
   }
   
-  tmp <- check.predictors(np, nf, nfi, npt)
-  np <- tmp$np
-  nf <- tmp$nf
-  nfi <- tmp$nfi
-  npt <- tmp$npt
+  imporder <- OrderCreation(dataOD$OD, dataOD$nr, dataOD$nc, np, nf, npt, nfi, 
+                            end.impute)
   
-  regr <- check.regr(regr)
-  dataOD$ncot <- check.ncot(dataOD$ncot,dataOD$nc)
-  
-  # 1. Analysis of OD and creation of matrices ORDER, ORDER2 and ORDER3 
-  dataOD[c("InitGapSize","MaxInitGapSize", "TermGapSize", "MaxTermGapSize",
-            "ORDERSLGLeft", "ORDERSLGRight", "ORDERSLGBoth", "LongGap", 
-            "MaxGap", "REFORD_L","ORDER","REFORDI_L","REFORDT_L")] <- OrderCreation(dataOD$OD, dataOD$nr, 
-                                                            dataOD$nc, np, nf, npt, nfi, end.impute)
+  rownamesDataset <- rownames(dataOD$OD)
+  nrowsDataset <- nrow(dataOD$OD)
   
   
-
   # Setting parallel or sequential backend and  random seed
   if (ParExec & (parallel::detectCores() > 2 & m > 1)) {
     if (is.null(ncores)) {
@@ -286,7 +234,7 @@ seqimpute_standard <- function(data, var=NULL,
     pb <- txtProgressBar(max = m, style = 3)
     progress <- function(n) setTxtProgressBar(pb, n)
     opts <- list(progress = progress)
-
+    
     # condition used to run code part needed for parallel processing
     ParParams <- TRUE
   } else {
@@ -304,27 +252,157 @@ seqimpute_standard <- function(data, var=NULL,
     if (SetRNGSeed) {
       set.seed(SetRNGSeed)
     }
-
+    
     foreach::registerDoSEQ()
     opts <- NULL
-
+    
     # condition used to run code part needed for sequential processing
     ParParams <- FALSE
   }
-
-
+  
   # Beginning of the multiple imputation (imputing "mi" times)
   o <- NULL
   RESULT <- foreach(o = 1:m, .inorder = TRUE, 
-      .options.snow = opts) %dopar% {
-    if (!ParParams) {
-      if (verbose == TRUE) {
-        cat("iteration :", o, "/", m, "\n")
-      }
-    }
+                    .options.snow = opts) %dopar% {
+                      
+                      if (!ParParams) {
+                        if (verbose == TRUE) {
+                          cat("iteration :", o, "/", m, "\n")
+                        }
+                      }
+                      
+                      
+                      if (timing == FALSE) {
+                        RESULT <- seqimpute_standard(dataOD, imporder=imporder,
+                                    np = np, nf = nf, m = m, covariates = covariates,
+                                    time.covariates = time.covariates, regr = regr, nfi = nfi, npt = npt,
+                                    available = available, pastDistrib = pastDistrib,
+                                    futureDistrib = futureDistrib,
+                                    verbose = verbose, ...)
+                        #method <- "MICT"
+                      }else {
+                        RESULT <- seqimpute_timing(dataOD, imporder=imporder,
+                                                   np = np, nf = nf, m = m, covariates = covariates,
+                                                   time.covariates = time.covariates, regr = regr, nfi = nfi, npt = npt,
+                                                   available = available, pastDistrib = pastDistrib,
+                                                   futureDistrib = futureDistrib,
+                                                   verbose = verbose, frame.radius=frame.radius,...)
+                        #method <- "MICT-timing"
+                      }
+                      
+                      
+                      
+                      
+                    }
+  if (ParParams) {
+    parallel::stopCluster(cl)
+  }
+  names(RESULT) <- paste0("imp",1:m)
+  
+  # RESULT <- rbind(cbind(replicate(dataOD$nr, 0), dataOD$OD), RESULT)
+  
+  # X. Final conversions -----------------------------------------------------
+  RESULT <- lapply(RESULT,FinalResultConvert, ODClass = dataOD$ODClass,
+                   ODlevels = dataOD$ODlevels, rownamesDataset = rownamesDataset, 
+                   nrowsDataset = nrowsDataset, nr = dataOD$nr, nc = dataOD$nc, 
+                   rowsNA = dataOD$rowsNA, mi = m)
+  
+  if(timing==TRUE){
+    method <- "MICT-timing"
+  }else{
+    method <- "MICT"
+    
+  }
+  seqimpobj <- list(data = data, imp = RESULT, m = m, method = method, 
+      np = np, nf = nf, regr = regr, call = call)
+  
+  oldClass(seqimpobj) <- "seqimp"
+  
+  
+  seqimpobj
+}
+
+
+seqimpute_standard <- function(dataOD, imporder=NULL,
+  covariates = matrix(NA, nrow = 1, ncol = 1), 
+  time.covariates = matrix(NA, nrow = 1, ncol = 1), np = 1, nf = 1, m = 1, 
+  regr = "multinom", nfi = 1, npt = 1, available = TRUE, pastDistrib = FALSE,
+  futureDistrib = FALSE, verbose = TRUE, ...)
+{
+
+  #dataOD <- preliminaryChecks(data, covariates, time.covariates,var=var)
+
+  noise <- 0
+
+  tmp <- check.predictors(np, nf, nfi, npt)
+  np <- tmp$np
+  nf <- tmp$nf
+  nfi <- tmp$nfi
+  npt <- tmp$npt
+  
+  regr <- check.regr(regr)
+  dataOD$ncot <- check.ncot(dataOD$ncot,dataOD$nc)
+  
+  # 1. Analysis of OD and creation of matrices ORDER, ORDER2 and ORDER3 
+  #imporder <- OrderCreation(dataOD$OD, dataOD$nr, dataOD$nc, np, nf, npt, nfi, end.impute)
+  
+  
+
+  # # Setting parallel or sequential backend and  random seed
+  # if (ParExec & (parallel::detectCores() > 2 & m > 1)) {
+  #   if (is.null(ncores)) {
+  #     Ncpus <- min(m, parallel::detectCores() - 1)
+  #   } else {
+  #     Ncpus <- min(ncores, parallel::detectCores() - 1)
+  #   }
+  #   cl <- parallel::makeCluster(Ncpus)
+  #   doSNOW::registerDoSNOW(cl) 
+  #   if (SetRNGSeed) {
+  #     doRNG::registerDoRNG(SetRNGSeed)
+  #   }
+  #   # set progress bar for parallel processing
+  #   pb <- txtProgressBar(max = m, style = 3)
+  #   progress <- function(n) setTxtProgressBar(pb, n)
+  #   opts <- list(progress = progress)
+  # 
+  #   # condition used to run code part needed for parallel processing
+  #   ParParams <- TRUE
+  # } else {
+  #   if (ParExec & m == 1) {
+  #     if (verbose == TRUE) {
+  #       message("/!\\ The number of multiple imputation is 1, parallel 
+  #           processing is only available for m > 1.")
+  #     }
+  #   } else if (ParExec) {
+  #     if (verbose == TRUE) {
+  #       message(paste("/!\\ The number of cores of your processor does not 
+  #         allow paralell processing, at least 3 cores are needed."))
+  #     }
+  #   }
+  #   if (SetRNGSeed) {
+  #     set.seed(SetRNGSeed)
+  #   }
+  # 
+  #   foreach::registerDoSEQ()
+  #   opts <- NULL
+  # 
+  #   # condition used to run code part needed for sequential processing
+  #   ParParams <- FALSE
+  # }
+
+
+  # # Beginning of the multiple imputation (imputing "mi" times)
+  # o <- NULL
+  # RESULT <- foreach(o = 1:m, .inorder = TRUE, 
+  #     .options.snow = opts) %dopar% {
+  #   if (!ParParams) {
+  #     if (verbose == TRUE) {
+  #       cat("iteration :", o, "/", m, "\n")
+  #     }
+  #   }
     
     # 3. Imputation using a specific model --------------------------------
-    if (max(dataOD$ORDER) != 0) {
+    if (max(imporder$ORDER) != 0) {
       # Otherwise if there is only 0 in ORDER,
       # there is no need to impute internal gaps
       # and we directly jump to the imputation of
@@ -334,15 +412,15 @@ seqimpute_standard <- function(data, var=NULL,
       }
       dataOD[["ODi"]] <- ModelImputation(OD = dataOD$OD, 
           covariates = dataOD$CO, time.covariates = dataOD$COt, 
-          ODi = dataOD$ODi, MaxGap = dataOD$MaxGap, regr = regr, nc = dataOD$nc, 
+          ODi = dataOD$ODi, MaxGap = imporder$MaxGap, regr = regr, nc = dataOD$nc, 
           np = np, nf = nf, 
           nr = dataOD$nr, ncot = dataOD$ncot, COtsample = dataOD$COtsample, 
           pastDistrib = pastDistrib, 
           futureDistrib = futureDistrib, k = dataOD$k, 
-          available = available, REFORD_L = dataOD$REFORD_L, 
+          available = available, REFORD_L = imporder$REFORD_L, 
           noise = dataOD$noise, verbose,...)
     }
-    if ((nfi != 0) & (dataOD$MaxInitGapSize != 0)){ 
+    if (imporder$MaxInitGapSize != 0){ 
       if (verbose == TRUE) {
         print("Imputation of the initial gaps...")
       }
@@ -351,14 +429,14 @@ seqimpute_standard <- function(data, var=NULL,
           covariates = dataOD$CO, time.covariates = dataOD$COt, 
           ODi = dataOD$ODi, COtsample = dataOD$COtsample,
           futureDistrib = futureDistrib, 
-          InitGapSize = dataOD$InitGapSize, 
-          MaxInitGapSize = dataOD$MaxInitGapSize, nr = dataOD$nr, 
+          InitGapSize = imporder$InitGapSize, 
+          MaxInitGapSize = imporder$MaxInitGapSize, nr = dataOD$nr, 
           nc = dataOD$nc, ud = dataOD$ud, nco = dataOD$nco, 
           ncot = dataOD$ncot, nfi = nfi, regr = regr, k = dataOD$k, 
           available = available, noise = dataOD$noise, ...)
     }
     # 5. Imputing terminal NAs ----------------------------------------------
-    if (end.impute == TRUE & (npt != 0) & (dataOD$MaxTermGapSize != 0)) {
+    if (imporder$MaxTermGapSize != 0) {
       # we only impute the terminal
       # gaps if npt > 0
       if (verbose == TRUE) {
@@ -367,8 +445,8 @@ seqimpute_standard <- function(data, var=NULL,
       dataOD[["ODi"]] <- ImputingTerminalNAs(OD = dataOD$OD, 
           covariates = dataOD$CO, time.covariates = dataOD$COt, 
           ODi = dataOD$ODi, COtsample = dataOD$COtsample, 
-          MaxTermGapSize = dataOD$MaxTermGapSize, 
-          TermGapSize = dataOD$TermGapSize, pastDistrib = pastDistrib, 
+          MaxTermGapSize = imporder$MaxTermGapSize, 
+          TermGapSize = imporder$TermGapSize, pastDistrib = pastDistrib, 
           regr = regr, npt = npt, nco = dataOD$nco, ncot = dataOD$ncot, 
           nr = dataOD$nr, nc = dataOD$nc, ud = dataOD$ud, 
           available = available, k = dataOD$k, noise = dataOD$noise, ...)
@@ -376,13 +454,13 @@ seqimpute_standard <- function(data, var=NULL,
     # 6. Imputing SLG NAs --------------------------------------------------
       # Checking if we have to impute
       # left-hand side SLG
-    if (max(dataOD$ORDERSLGLeft) != 0) { 
+    if (max(imporder$ORDERSLGLeft) != 0) { 
       if (verbose == TRUE) {
         print("Imputation of the left-hand side SLG...")
       }
       dataOD[["ODi"]] <- LSLGNAsImpute(OD = dataOD$OD, ODi = dataOD$ODi, 
           covariates = dataOD$CO, time.covariates = dataOD$COt, 
-          COtsample = dataOD$COtsample, ORDERSLG = dataOD$ORDERSLGLeft,
+          COtsample = dataOD$COtsample, ORDERSLG = imporder$ORDERSLGLeft,
           pastDistrib = pastDistrib, 
           futureDistrib = futureDistrib, regr = regr, np = np, 
           nr = dataOD$nr, nf = nf, nc = dataOD$nc, 
@@ -390,7 +468,7 @@ seqimpute_standard <- function(data, var=NULL,
           noise = dataOD$noise, available = available, ...)
     }
     # right-hand side SLG
-    if (max(dataOD$ORDERSLGRight) != 0) {
+    if (max(imporder$ORDERSLGRight) != 0) {
       # Checking if we have to impute right-hand
       # side SLG
       if (verbose == TRUE) {
@@ -398,7 +476,7 @@ seqimpute_standard <- function(data, var=NULL,
       }
       dataOD[["ODi"]] <- RSLGNAsImpute(OD = dataOD$OD, ODi = dataOD$ODi, 
           covariates = dataOD$CO, time.covariates = dataOD$COt, 
-          COtsample = dataOD$COtsample, ORDERSLGRight = dataOD$ORDERSLGRight,
+          COtsample = dataOD$COtsample, ORDERSLGRight = imporder$ORDERSLGRight,
           pastDistrib = pastDistrib, 
           futureDistrib = futureDistrib, regr = regr, np = np, 
           nr = dataOD$nr, nf = nf, nc = dataOD$nc, 
@@ -407,19 +485,19 @@ seqimpute_standard <- function(data, var=NULL,
     }
     # Checking if we have to impute
     # Both-hand side SLG
-    if (dataOD$LongGap){
+    if (imporder$LongGap){
       if (verbose == TRUE) {
         print("Imputation of the both-hand side SLG...")
       }
       for (h in 2:np) {
-        if (sum(dataOD$ORDERSLGBoth[, h - 1] == 0 & 
-                dataOD$ORDERSLGBoth[, h] != 0) > 0) {
-          tt <- which(dataOD$ORDERSLGBoth[, h - 1] == 0 & 
-                        dataOD$ORDERSLGBoth[, h] != 0)
-          tmpORDER <- matrix(0, nrow(dataOD$ORDERSLGBoth),
-            ncol(dataOD$ORDERSLGBoth))
-          tmpORDER[tt, h:ncol(dataOD$ORDERSLGBoth)] <- dataOD$ORDERSLGBoth[tt, 
-              h:ncol(dataOD$ORDERSLGBoth)]
+        if (sum(imporder$ORDERSLGBoth[, h - 1] == 0 & 
+                imporder$ORDERSLGBoth[, h] != 0) > 0) {
+          tt <- which(imporder$ORDERSLGBoth[, h - 1] == 0 & 
+                        imporder$ORDERSLGBoth[, h] != 0)
+          tmpORDER <- matrix(0, nrow(imporder$ORDERSLGBoth),
+            ncol(imporder$ORDERSLGBoth))
+          tmpORDER[tt, h:ncol(imporder$ORDERSLGBoth)] <- imporder$ORDERSLGBoth[tt, 
+              h:ncol(imporder$ORDERSLGBoth)]
 
           dataOD[["ODi"]] <- RSLGNAsImpute(OD = dataOD$OD, ODi = dataOD$ODi, 
               covariates = dataOD$CO, time.covariates = dataOD$COt, 
@@ -434,20 +512,20 @@ seqimpute_standard <- function(data, var=NULL,
     }
 
     return(dataOD$ODi)
-  }
-  if (ParParams) {
-    parallel::stopCluster(cl)
-  }
-  
-  names(RESULT) <- paste0("imp",1:m)
-
-  # RESULT <- rbind(cbind(replicate(dataOD$nr, 0), dataOD$OD), RESULT)
-
-  # X. Final conversions -----------------------------------------------------
-  RESULT <- lapply(RESULT,FinalResultConvert, ODClass = dataOD$ODClass,
-      ODlevels = dataOD$ODlevels, rownamesDataset = rownamesDataset, 
-      nrowsDataset = nrowsDataset, nr = dataOD$nr, nc = dataOD$nc, 
-      rowsNA = dataOD$rowsNA, mi = m)
-  return(RESULT)
+  # }
+  # if (ParParams) {
+  #   parallel::stopCluster(cl)
+  # }
+  # 
+  # names(RESULT) <- paste0("imp",1:m)
+  # 
+  # # RESULT <- rbind(cbind(replicate(dataOD$nr, 0), dataOD$OD), RESULT)
+  # 
+  # # X. Final conversions -----------------------------------------------------
+  # RESULT <- lapply(RESULT,FinalResultConvert, ODClass = dataOD$ODClass,
+  #     ODlevels = dataOD$ODlevels, rownamesDataset = rownamesDataset, 
+  #     nrowsDataset = nrowsDataset, nr = dataOD$nr, nc = dataOD$nc, 
+  #     rowsNA = dataOD$rowsNA, mi = m)
+  # return(RESULT)
 
 }
