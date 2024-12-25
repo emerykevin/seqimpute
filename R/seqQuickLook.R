@@ -89,19 +89,6 @@ seqQuickLook <- function(data, var=NULL, np = 1, nf = 1) {
   datadata[c("MaxInitGapSize", "InitGapSize", "MaxTermGapSize", "TermGapSize", 
     "MaxGap", "ORDER", "ORDER2", "ORDER3")] <- OrderCreation(datadata$data, 
           nr, nc)
-
-
-  # 2. Computation of the order of imputation of each MD 
-  # if (max(datadata$ORDER) != 0) {
-  #   datadata[c("ORDERSLGLeft", "ORDERSLGRight", "ORDERSLGBoth", "LongGap", 
-  #     "MaxGap","REFORD_L","ORDER")] <- ImputeOrderComputation(datadata$ORDER, 
-  #         datadata$ORDER3, datadata$MaxGap, np, nf, nr, nc)
-  # } else {
-  #   datadata$ORDERSLGLeft <- matrix(nrow = datadata$nr, ncol = datadata$nc,0)
-  #   datadata$ORDERSLGRight <- matrix(nrow =datadata$nr, ncol = datadata$nc,0)
-  #   datadata$ORDERSLGBoth <- matrix(nrow = datadata$nr, ncol = datadata$nc,0)
-  #   datadata$LongGap <- FALSE
-  # }
   
   
   datadata[c("ORDERSLGLeft", "ORDERSLGRight", "ORDERSLGBoth", "LongGap", 

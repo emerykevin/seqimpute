@@ -12,7 +12,7 @@
 # ORDER3: matrix of the same size of OD replacing each MD by the length of
 # the gap it belongs to.
 
-OrderCreation <- function(OD, nr, nc) {
+OrderCreation <- function(OD, nr, nc, np, nf, npt, nfi, end.impute) {
   # Creation of matrix ORDER
   ORDER <- matrix(0, nr, nc) # initialization of matrix ORDER with 0 everywhere
   SEL <- is.na(OD) == TRUE # creation of matrix SEL, constituted of TRUE where
@@ -21,17 +21,23 @@ OrderCreation <- function(OD, nr, nc) {
   # SEL we have some TRUE
 
 
-  GSValue <- list()
   # Creation of vector InitGapSize (i.e. a vector containing the size of the
   # initial gaps of each line)
-  GSValue[c("MaxInitGapSize", "InitGapSize")] <- GapSizeCreation(ORDER, 
-    nr, 1, 2:nc)
+  ORDList <- list()
+  
 
+  ORDList$InitGapSize <- GapSizeCreation(ORDER, 
+                                         nr, 1, 2:nc)
+  ORDList$MaxInitGapSize <- max(ORDList$InitGapSize)
+  
   # Creation of vector TermGapSize (i.e. a vector containing the size of the
   # terminal gaps of each line)
-  GSValue[c("MaxTermGapSize", "TermGapSize")] <- GapSizeCreation(ORDER, 
-    nr, nc, (nc - 1):1)
-
+  
+  ORDList$TermGapSize <- GapSizeCreation(ORDER, 
+                                         nr, nc, (nc - 1):1)
+  ORDList$MaxTermGapSize <- max(ORDList$TermGapSize)
+  
+    
 
   # Updating of ORDER with "0" on every external NAs
   # (The purpose of this modification of ORDER is that we don't take into
@@ -39,20 +45,26 @@ OrderCreation <- function(OD, nr, nc) {
   # We will first impute internal gaps and consider external gaps further
   # (as far as nfi and npt are greater than 0))
   for (i in 1:nr) {
-    if (GSValue$InitGapSize[i] != 0) {
-      ORDER[i, 1:GSValue$InitGapSize[i]] <- vector("numeric", 
-        GSValue$InitGapSize[i])
+    if (ORDList$InitGapSize[i] != 0) {
+      ORDER[i, 1:ORDList$InitGapSize[i]] <- vector("numeric", 
+        ORDList$InitGapSize[i])
     }
 
-    if (GSValue$TermGapSize[i] != 0) {
-      ORDER[i, (nc - GSValue$TermGapSize[i] + 1):nc] <- vector("numeric", 
-        GSValue$TermGapSize[i])
+    if (ORDList$TermGapSize[i] != 0) {
+      ORDER[i, (nc - ORDList$TermGapSize[i] + 1):nc] <- vector("numeric", 
+        ORDList$TermGapSize[i])
     } else {
       next
     }
   }
 
-
+  if(nfi==0){
+    ORDList$MaxInitGapSize <- 0
+  }
+  
+  if(npt==0 | end.impute==FALSE){
+    ORDList$MaxTermGapSize <- 0
+  }
   # Creation of matrices ORDER2 and ORDER3
   ORDER2 <- ORDER # initially both ORDER2 and
   ORDER3 <- ORDER # ORDER3 are equal to ORDER
@@ -84,9 +96,53 @@ OrderCreation <- function(OD, nr, nc) {
       }
     }
   }
-  GSValue["MaxGap"] <- max(max(ORDER2)) 
+  MaxGap <- max(max(ORDER2)) 
+  
+  if (max(ORDER) != 0) {
+    ORDER <- PrevAndFutCompute(ORDER, ORDER3, np, nf, nr, nc, MaxGap)
+    
+    # 2.2. Model 2: use of previous observations only ----------------------------
+    ORDER <- PrevObsCompute(ORDER, ORDER3, np, nf, nr, nc, MaxGap)
+    
+    # 2.3. Model 3: use of future observations only ------------------------------
+    ORDER <- FutObsCompute(ORDER, ORDER3, np, nf, nr, nc, MaxGap)
+    
+    # 6.1 Creation of ORDERSLG (ORDERSLGLeft and ORDERSLGRight)
+    Ord_temp_L <- list()
+    Ord_temp_L[c("ORDERSLG","tempMinGapLeft","tempMaxGapLeft","tempMinGapRight", 
+                 "tempMaxGapRight")] <- ORDERSLGCreation(ORDER, nr, nc, np, nf)
+    ORDList[c("ORDERSLGLeft", "ORDERSLGRight", "ORDERSLGBoth", 
+              "LongGap")] <- ORDERSLGLRCompute(nr, nc, Ord_temp_L$ORDERSLG, 
+                                               Ord_temp_L$tempMinGapLeft, Ord_temp_L$tempMinGapRight, 
+                                               Ord_temp_L$tempMaxGapLeft, Ord_temp_L$tempMaxGapRight)
+    
+    ORDER <- ORDER-ORDList$ORDERSLGLeft-ORDList$ORDERSLGRight-ORDList$ORDERSLGBoth
+    if (max(ORDER) != 0) {
+      ORDList[c("MaxGap", "REFORD_L", "ORDER")] <- REFORDInit(ORDER, nr, nc)
+    } else {
+      ORDList[c("MaxGap", "REFORD_L", "ORDER")] <- list(MaxGap, list(), ORDER)
+    }
+  }else{
+    ORDList$ORDERSLGLeft <- matrix(nrow = nr, ncol = nc, 0)
+    ORDList$ORDERSLGRight <- matrix(nrow = nr, ncol = nc, 0)
+    ORDList$ORDERSLGBoth <- matrix(nrow = nr, ncol = nc, 0)
+    ORDList$LongGap <- FALSE
+  }
+  
+  if(ORDList$MaxInitGapSize != 0){
+    ORDList$REFORDI_L <- REFORDICreation(nr, nc, ORDList$InitGapSize,
+                               ORDList$MaxInitGapSize)
+  }else{
+    ORDList$REFORDI_L <- list()
+  }
 
-  return(c(GSValue, list(ORDER, ORDER2, ORDER3)))
+  if(ORDList$MaxTermGapSize != 0){
+    ORDList$REFORDT_L <- REFORDTCreation(nr, nc, ORDList$TermGapSize,
+                                           ORDList$MaxTermGapSize)
+  }else{
+    ORDList$REFORDT_L <- list()
+  }
+  return(ORDList)
 }
 
 
@@ -112,6 +168,6 @@ GapSizeCreation <- function(ORDER, nr, OrderWidth, OrderList) {
       }
     }
   }
-  MaxGapSize <- max(GapSize)
-  return(list(MaxGapSize, GapSize))
+  #MaxGapSize <- max(GapSize)
+  return(GapSize)
 }

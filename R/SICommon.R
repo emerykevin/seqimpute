@@ -74,8 +74,7 @@ REFORDInit <- function(ORDER, nr, nc) {
   for (i in 1:MaxGap) {
     REFORD_L[[i]] <- non_zero[which(ord_cord == i), , drop = FALSE]
   }
-
-  return(list(MaxGap, REFORD_L, ORDER))
+  return(list(MaxGap=MaxGap, REFORD_L=REFORD_L, ORDER=ORDER))
 }
 
 ############################################################################
@@ -533,7 +532,7 @@ PastFutureVICompute <- function(CD, CO, OD, ncot, frameSize, iter, nr, nc,
 # Imputation where only PAST VIs  exist
 
 ODiImputePAST <- function(CO, ODi, CD, COt, REFORD, nr_REFORD, pastDistrib, 
-  futureDistrib, k, np, nf, nc, ncot, totV, reglog, LOOKUP, regr, noise)
+  futureDistrib, k, np, nf, nc, ncot, reglog, LOOKUP, regr, noise)
 {
   for (u in 1:nr_REFORD) {
     i <- REFORD[u, 1]
@@ -671,7 +670,7 @@ ODiImputePAST <- function(CO, ODi, CD, COt, REFORD, nr_REFORD, pastDistrib,
 
 
     # Check for missing-values among predictors
-    if (max(is.na(CDi[1, 2:totV])) == 0) {
+    if (max(is.na(CDi[1, 2:ncol(CDi)])) == 0) {
       ODi <- RegrImpute(ODi, CDi, regr, reglog, noise, i, j, k)
     }
   }
@@ -684,7 +683,7 @@ ODiImputePAST <- function(CO, ODi, CD, COt, REFORD, nr_REFORD, pastDistrib,
 # Imputation where past and future VIs exist
 
 ODiImputePF <- function(CO, ODi, CD, COt, REFORD, nr_REFORD, pastDistrib, 
-  futureDistrib, k, np, nf, nc, ncot, totV, reglog, LOOKUP, regr, noise, 
+  futureDistrib, k, np, nf, nc, ncot, reglog, LOOKUP, regr, noise, 
   shift, MaxGap, order)
 {
   for (u in 1:nr_REFORD) {
@@ -732,29 +731,8 @@ ODiImputePF <- function(CO, ODi, CD, COt, REFORD, nr_REFORD, pastDistrib,
       CDi <- cbind(CDi, CDdai)
     }
 
-    # Conversion of CDi into a data frame
     CDi <- as.data.frame(CDi)
-    # Type transformation of the columns of CDi
-    # The first values of CDi must be of type factor
-    # (categorical values)
-
-    # if (regr == "lm" | regr == "lrm") {
-    #   for (v in 1:(1 + np + nf)) {
-    #     CDi[, v] <- factor(CDi[, v], levels = levels(CD[, v]), exclude = NULL)
-    #   }
-    # } else if (regr == "rf") {
-    #   for (v in 2:(1 + np + nf)) {
-    #     CDi[, v] <- factor(CDi[, v], levels = c(1:(k + 1)))
-    #     CDi[, v][is.na(CDi[, v])] <- k + 1
-    #   }
-    #   CDi[, 1] <- factor(CDi[, 1], levels = levels(CD[, 1]))
-    # } else {
-    #   # multinom
-    #   CDi[, 1] <- factor(CDi[, 1], levels = c(1:k))
-    #   for (v in 2:(1 + np + nf)) {
-    #     CDi[, v] <- factor(CDi[, v], levels = levels(CD[, v]), exclude = NULL)
-    #   }
-    # }
+   
     
     if (regr == "rf") {
       for (v in 2:(1 + np + nf)) {
@@ -771,16 +749,13 @@ ODiImputePF <- function(CO, ODi, CD, COt, REFORD, nr_REFORD, pastDistrib,
     }
     
     
-    # The last values of CDi must be of type numeric
-    # (distributions)
     if (pastDistrib | futureDistrib) {
       CDi[, (1 + np + nf + 1):ncol(CDi)] <- lapply(
         CDi[, (1 + np + nf + 1):ncol(CDi)], as.numeric
         )
     }
 
-    # Eventually concatenating CDi with COi
-    # (the matrix containing the covariates)
+
     if (all(is.na(CO)) == FALSE) {
       # Checking if CO is NOT
       # completely empty
@@ -825,7 +800,7 @@ ODiImputePF <- function(CO, ODi, CD, COt, REFORD, nr_REFORD, pastDistrib,
     # Check for missing-values among predictors
     # (i.e. we won't impute any value on the current
     # MD if there is any NA among the VIs)
-    if (max(is.na(CDi[1, 2:totV])) == 0) {
+    if (max(is.na(CDi[1, 2:ncol(CDi)])) == 0) {
       # checking that
       # there is no NA
       # among the current
@@ -840,75 +815,7 @@ ODiImputePF <- function(CO, ODi, CD, COt, REFORD, nr_REFORD, pastDistrib,
 }
 
 
-
-################################################################################
-# Impute value with the chosen regression model
-
 RegrImpute <- function(ODi, CDi, regr, reglog, noise, i, j, k) {
-  
-  # else if (regr == "lm") {
-  #   # Since we are performing a linear
-  #   # regression, each element of CDi are
-  #   # numbers and have to be considered as
-  #   # class "numeric"
-  #   CDi <- as.data.frame(lapply(CDi[, 1:ncol(CDi)], as.numeric))
-  #   
-  #   pred <- predict(reglog, CDi)
-  #   # Introducing a variance "noise"
-  #   pred <- rnorm(length(pred), pred, noise)
-  #   # Rounding pred to the nearest integer
-  #   pred <- round(pred)
-  #   # Restricting pred to its lowest
-  #   # value: 1
-  #   pred <- ifelse(pred < 1, 1, pred)
-  #   # Restricting pred to its highest
-  #   # value: k
-  #   pred <- ifelse(pred > k, k, pred)
-  #   sel <- pred
-  # } else if (regr == "lrm") { # meaning (regr == "lrm")
-  #   ## Case of ORDINAL REGRESSION MODEL
-  #   
-  #   # Since we are performing an ordinal
-  #   # regression, each element of CDi are
-  #   # numbers and have to be considered as
-  #   # class "numeric"
-  #   CDi <- as.data.frame(lapply(CDi[, 1:ncol(CDi)], as.numeric))
-  #   
-  #   pred <- predict(reglog, CDi, type = "fitted.ind")
-  #   # Testing if we are in case where k=2
-  #   # (if this is the case, we need to
-  #   # create the second complementary
-  #   # probility by hand since lrm returns
-  #   # only the first probability)
-  #   if (k == 2) {
-  #     pred <- c(pred, (1 - pred))
-  #   }
-  #   # Cumulative pred
-  #   pred <- cumsum(pred)
-  #   # Introducing a variance "noise"
-  #   pred <- rnorm(length(pred), pred, noise)
-  #   # Checking that the components of vector
-  #   # "pred" are still included in the
-  #   # interval [0,1]
-  #   pred <- unlist(lapply(pred, function(x) {
-  #     if (x < 0) 0 else x
-  #   }))
-  #   pred <- unlist(lapply(pred, function(x) {
-  #     if (x > 1) 1 else x
-  #   }))
-  #   # Imputation
-  #   # Since we have introduce a noise on the
-  #   # variance, it might occur that "alea"
-  #   # is greater than the greatest value of
-  #   # "pred". We have then to restrict
-  #   # "alea" to the last value of "pred"
-  #   alea <- runif(1)
-  #   if (alea > pred[length(pred)]) {
-  #     alea <- pred[length(pred)]
-  #   }
-  #   sel <- which(pred >= alea)
-  # } 
-  
   if (regr == "multinom") {
     if (length(reglog$lev) > 2) {
       pred <- predict(reglog, CDi, type = "probs")[1, ]
@@ -918,9 +825,7 @@ RegrImpute <- function(ODi, CDi, regr, reglog, noise, i, j, k) {
 
 
       alea <- runif(1)
-      # Example value returned in "alea":
-      # [1] 0.2610005
-      #
+
       sel <- as.numeric(names_saved[which(pred >= alea)])
     } else {
       pred <- predict(reglog, CDi, type = "probs")
@@ -937,42 +842,14 @@ RegrImpute <- function(ODi, CDi, regr, reglog, noise, i, j, k) {
     pred <- factor(pred, levels = c(1:k))
     tab <- table(pred)
     tab <- tab / sum(tab)
-    #
-    # # Example of value returned by pred:
-    # # (Sytematically, the upper line
-    # # represents the possible categories of
-    # # the variable (here, k=2, so the
-    # # possible categories are
-    # # either 1" or "2"))
-    # #            1            2
-    # # 1.000000e+00 2.111739e-22
-    # #
-    # # Cumulative pred
+    
     pred <- cumsum(tab)
 
-    # Corresponding example value returned
-    # by the "cumulative pred":
-    # 1 2
-    # 1 1
-    #
-    # Introducing a variance "noise"
-    # pred <- rnorm(length(pred),pred,noise)
-    # Checking that the components of vector
-    # "pred" are still included in the
-    # interval [0,1]
-    # pred <- unlist(lapply(pred, function(x) {if (x < 0) 0 else x}))
-    # pred <- unlist(lapply(pred, function(x) {if (x > 1) 1 else x}))
-    # Imputation
+    
     alea <- runif(1)
-    # Example value returned in "alea":
-    # [1] 0.2610005
-    #
+    
     sel <- levels(CDi[, 1])[which(pred >= alea)[1]]
-    # Corresponding example value returned
-    # in sel:
-    # 1 2
-    # 1 2
-    #
+    
   } else {
 
 
@@ -987,76 +864,13 @@ RegrImpute <- function(ODi, CDi, regr, reglog, noise, i, j, k) {
 ################################################################################
 # Compute model with the chosen regression model
 
-ComputeModel <- function(CD, regr, tot_VI, np, nf, k, ...) {
+ComputeModel <- function(CD, regr, np, nf, k, ...) {
   npfi <- np + nf
-  # ==>> Manipulation of parameters
-
-  # Conversion of CD in a data frame
+  
   CD <- as.data.frame(CD)
 
-  # Transformation of the names of the columns of CD
-  # (called V1, V2, ..., "Vtot_VI")
-  colnames(CD) <- paste("V", 1:ncol(CD), sep = "")
 
-  # if (regr == "lm") {
-  #   ## Case of LINEAR REGRESSION MODEL
-  # 
-  #   # Since we are performing a linear regression, each
-  #   # element of CD are numbers and have then to remain as
-  #   # class "numeric" (we don't have to perform some class
-  #   # adjustment as for the case of the creation of a
-  #   # multinomial model).
-  # 
-  #   # Computation of the linear regression model
-  #   if (tot_VI == 1) {
-  #     reglog <- lm(V1 ~ 0, data = CD)
-  #     # first case is evaluated aside
-  #   }
-  # 
-  #   if (tot_VI > 1) {
-  #     # creation of "V2" ... "Vtot_VI" (to use them in the
-  #     # formula)
-  #     factors_character <- paste("V", 2:tot_VI, sep = "")
-  #     # Transformation of this object from character to
-  #     # vector (in order to be able
-  #     # to access its components)
-  #     factors <- as.vector(factors_character)
-  #     # Creation of a specific formula according to the
-  #     # value of tot_VI
-  #     fmla <- as.formula(paste("V1~0+", paste(factors, collapse = "+")))
-  #     reglog <- lm(fmla, data = CD)
-  #   }
-  # } else if (regr == "lrm") { # meaning (regr == "lrm")
-  #   ## Case of ORDINAL REGRESSION MODEL
-  # 
-  #   # Linking to the package rms to use the function "lrm"
-  # 
-  #   # Since we are performing an ordinal regression, each
-  #   # element of CD are numbers and have then to remain as
-  #   # class "numeric" (we don't have to perform some
-  #   # class adjustment as for the case of the creation of a
-  #   # multinomial model).
-  # 
-  #   # Computation of the ordinal model
-  #   if (tot_VI == 1) {
-  #     reglog <- lrm(V1 ~ 0, data = CD)
-  #     # first case is evaluated aside
-  #   }
-  # 
-  #   if (tot_VI > 1) {
-  #     # creation of "V2" ... "Vtot_VI" (to use them in the
-  #     # formula)
-  #     factors_character <- paste("V", 2:tot_VI, sep = "")
-  #     # Transformation of this object from character to
-  #     # vector (in order to be able
-  #     # to access its components)
-  #     factors <- as.vector(factors_character)
-  #     # Creation of a specific formula according to the
-  #     # value of tot_VI
-  #     fmla <- as.formula(paste("V1~0+", paste(factors, collapse = "+")))
-  #     reglog <- lrm(fmla, data = CD)
-  #   }
-  # } 
+  colnames(CD) <- paste("V", 1:ncol(CD), sep = "")
   
   if (regr == "rf") { 
 
@@ -1071,15 +885,11 @@ ComputeModel <- function(CD, regr, tot_VI, np, nf, k, ...) {
     CD <- CD[!is.na(CD[, 1]), ]
 
 
-    factors_character <- paste("V", 2:tot_VI, sep = "")
-    # Transformation of this object from character to
-    # vector (in order to be able
-    # to access its components)
+    factors_character <- paste("V", 2:ncol(CD), sep = "")
+    
     factors <- as.vector(factors_character)
-    # Creation of a specific formula according to the
-    # value of tot_VI
+    
     fmla <- as.formula(paste("V1~", paste(factors, collapse = "+")))
-    # reglog <- randomForest(fmla, data=CD,ntree=100)
 
     if ("num.trees" %in% names(list(...))) {
       reglog <- ranger(fmla, data = CD, ...)
@@ -1100,13 +910,10 @@ ComputeModel <- function(CD, regr, tot_VI, np, nf, k, ...) {
     }
 
 
-    factors_character <- paste("V", 2:tot_VI, sep = "")
-    # Transformation of this object from character to
-    # vector (in order to be able
-    # to access its components)
+    factors_character <- paste("V", 2:ncol(CD), sep = "")
+   
     factors <- as.vector(factors_character)
-    # Creation of a specific formula according to the
-    # value of tot_VI
+    
     fmla <- as.formula(paste("V1~", paste(factors, collapse = "+")))
 
     reglog <- nnet::multinom(CD, maxit = 100, trace = FALSE, 

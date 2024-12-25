@@ -22,7 +22,7 @@ LSLGNAsImpute <- function(OD, ODi, covariates, time.covariates, COtsample,
       # and we simply can go
       # to the next column of ORDERSLGLeft
 
-      ParamList[c("ORDERSLG_temp","totV_temp","np_temp")] <- SLGMatrix_temp(nr, 
+      ParamList[c("ORDERSLG_temp","np_temp")] <- SLGMatrix_temp(nr, 
         nc, nf, h, ORDERSLG, nco, ncot, pastDistrib, futureDistrib, k)
 
       if (max(ParamList$ORDERSLG_temp) == 0) {
@@ -57,10 +57,10 @@ LSLGNAsImpute <- function(OD, ODi, covariates, time.covariates, COtsample,
         if (length(table(ParamList$CD[, 1])) > 1) {
           log_CD <- list()
           log_CD[c("reglog", "CD")] <- ComputeModel(ParamList$CD, regr, 
-              ParamList$totV_temp, ParamList$np_temp, nf, k, ...)
+              ParamList$np_temp, nf, k, ...)
           # 6.3.3.LEFT Imputation using the just created model 
           ODi <- SLGCreatedModelImpute(covariates, OD, log_CD$CD, ODi, 
-              time.covariates, ncot, nf, nc, regr, k, ParamList$totV_temp, 
+              time.covariates, ncot, nf, nc, regr, k, 
               log_CD$reglog, noise, available, ParamList$REFORD_L, 
               ParamList$np_temp, pastDistrib, futureDistrib, 
               order, ParamList$MaxGap, ParamList$shift)
@@ -114,7 +114,7 @@ RSLGNAsImpute <- function(OD, ODi, covariates, time.covariates, COtsample,
       # perform the entire following procedure and we
       # simply can go to the next column of ORDERSLGRight
 
-      ParamList[c("ORDERSLGRight_temp", "totV_temp", 
+      ParamList[c("ORDERSLGRight_temp",
         "nf_temp")] <- SLGMatrixRight_temp(nr, nc, np, h, ORDERSLGRight, nco, 
         ncot, pastDistrib, futureDistrib, k)
 
@@ -154,12 +154,12 @@ RSLGNAsImpute <- function(OD, ODi, covariates, time.covariates, COtsample,
         if (length(table(ParamList$CD[, 1])) > 1) {
           log_CD <- list()
           log_CD[c("reglog", "CD")] <- ComputeModel(ParamList$CD, regr, 
-              ParamList$totV_temp, np, ParamList$nf_temp, k, ...)
+              np, ParamList$nf_temp, k, ...)
           
           
           ODi <- SLGCreatedModelImpute(covariates, OD, log_CD$CD, ODi, 
               time.covariates, ncot, ParamList$nf_temp, nc, regr, k, 
-              ParamList$totV_temp, log_CD$reglog, noise, available, 
+              log_CD$reglog, noise, available, 
               ParamList$REFORD_L, np, pastDistrib, futureDistrib, order, 
               ParamList$MaxGap, ParamList$shift)
         }else{
@@ -212,13 +212,6 @@ SLGMatrix_temp <- function(nr, nc, nf, h, ORDERSLG, nco, ncot, pastDistrib,
 
   # Update of np and totV
   np_temp <- h - 1
-  totV_temp <- 1 + np_temp + nf + nco + (ncot / nc)
-  if (pastDistrib) {
-    totV_temp <- totV_temp + k
-  }
-  if (futureDistrib) {
-    totV_temp <- totV_temp + k
-  }
 
 
   # (i.e. updating matrix ORDERSLG_temp with
@@ -227,7 +220,7 @@ SLGMatrix_temp <- function(nr, nc, nf, h, ORDERSLG, nco, ncot, pastDistrib,
 
   # Adjusting the matrix ORDERSLG_temp and
   # storing the coordinates of the NA to impute
-  return(list(ORDERSLG_temp, totV_temp, np_temp))
+  return(list(ORDERSLG_temp, np_temp))
 }
 
 
@@ -256,21 +249,14 @@ SLGMatrixRight_temp <- function(nr, nc, np, h, ORDERSLGRight, nco, ncot,
 
   # Update of nf and totV
   nf_temp <- nc - h
-  totV_temp <- 1 + np + nf_temp + nco + (ncot / nc)
-  if (pastDistrib) {
-    totV_temp <- totV_temp + k
-  }
-  if (futureDistrib) {
-    totV_temp <- totV_temp + k
-  }
-
+  
   # (i.e. updating matrix ORDERSLGRight_temp with
   # coherent value of "order" (going from 1 to
   # MaxGapSLGRight))
 
   # Adjusting the matrix ORDERSLGRight_temp and
   # storing the coordinates of the NA to impute
-  return(list(ORDERSLGRight_temp, totV_temp, nf_temp))
+  return(list(ORDERSLGRight_temp, nf_temp))
 }
 
 
@@ -359,7 +345,7 @@ SLGCDMatBuild <- function(CO, COt, OD, order, MaxGapSLGLeft, np, ncot, nr, nc,
 # Impute SLG using created model
 
 SLGCreatedModelImpute <- function(CO, OD, CD, ODi, COt, ncot, nf, nc, regr, k, 
-  totV_temp, reglog_6, noise, available, REFORDSLG_L, np, pastDistrib, 
+  reglog_6, noise, available, REFORDSLG_L, np, pastDistrib, 
   futureDistrib, order, MaxGap, shift)
 {
   # Structure and building of the data matrix CDi
@@ -418,17 +404,17 @@ SLGCreatedModelImpute <- function(CO, OD, CD, ODi, COt, ncot, nf, nc, regr, k,
   if (np > 0 & nf == 0) {
     # only PAST VIs do existe)
     ODi <- ODiImputePAST(CO, ODi, CD, COt, REFORDSLGLeft, nr_REFORD, 
-      pastDistrib, futureDistrib, k, np, nf, nc, ncot, totV_temp, reglog_6, 
+      pastDistrib, futureDistrib, k, np, nf, nc, ncot, reglog_6, 
       LOOKUP, regr, noise)
   }else if(np==0 & nf>0){
     ODi <- ODiImputeFUTURE(CO, ODi, CD, COt, REFORDSLGLeft, nr_REFORD, 
-      pastDistrib, futureDistrib, k, np, nf, nc, ncot, totV_temp, reglog_6, 
+      pastDistrib, futureDistrib, k, np, nf, nc, ncot, reglog_6, 
       LOOKUP, regr, noise)
   }else {
     # meaning np>0 and nf>0 and that, thus,
     # PAST as well as FUTURE VIs do exist
     ODi <- ODiImputePF(CO, ODi, CD, COt, REFORDSLGLeft, nr_REFORD, pastDistrib, 
-      futureDistrib, k, np, nf, nc, ncot, totV_temp, reglog_6, LOOKUP, regr, 
+      futureDistrib, k, np, nf, nc, ncot, reglog_6, LOOKUP, regr, 
       noise, shift, MaxGap, order)
   }
   return(ODi)

@@ -4,8 +4,8 @@
 ################################################################################
 # Impute data using a specific model
 
-ModelImputation <- function(OD, covariates, time.covariates, ODi, MaxGap, totV, 
-  totVi, regr, nc, np, nf, nr, ncot, COtsample, pastDistrib, futureDistrib, k, 
+ModelImputation <- function(OD, covariates, time.covariates, ODi, MaxGap, 
+  regr, nc, np, nf, nr, ncot, COtsample, pastDistrib, futureDistrib, k, 
   available, REFORD_L, noise, verbose, ...)
 {
   for (order in 1:MaxGap) {
@@ -17,17 +17,22 @@ ModelImputation <- function(OD, covariates, time.covariates, ODi, MaxGap, totV,
     # of the iteration, the order in which the
     # values are going to be imputed)
     # 3.1. Building of the data matrix CD for the computation of the model ----
+    # CD_shift <- CDComputeTiming(CO=covariates, OD=OD, COt=time.covariates, 
+    #                     MaxGap=MaxGap, order=order, np=np, nc=nc, nr=nr, nf=nf, COtsample, 
+    #                     pastDistrib=pastDistrib, futureDistrib=futureDistrib, 
+    #                     ncot=ncot, k=k, col=np+1, frame.radius=nc)
+    
     CD_shift <- CDCompute(covariates, OD, time.covariates, MaxGap, order, np, 
-        nc, nr, nf, COtsample, pastDistrib, futureDistrib, ncot, k)
+                          nc, nr, nf, COtsample, pastDistrib, futureDistrib, ncot, k)
     if (length(table(CD_shift$CD[, 1])) > 1) {
       # 3.2. Computation of the model (Dealing with the LOCATIONS of imputation
       log_CD <- list()
-      log_CD[c("reglog", "CD")] <- ComputeModel(CD_shift$CD, regr, totV, np, 
+      log_CD[c("reglog", "CD")] <- ComputeModel(CD_shift$CD, regr, np, 
                                                 nf, k, ...)
       # 3.3. Imputation using the just created model 
       ODi <- CreatedModelImputation(order, covariates, log_CD$CD, 
         time.covariates, OD, ODi, pastDistrib, futureDistrib, available, 
-        REFORD_L, ncot, nc, np, nf, k, totV, regr, log_CD$reglog, noise, 
+        REFORD_L, ncot, nc, np, nf, k, regr, log_CD$reglog, noise, 
         CD_shift$shift, MaxGap)
     }else{
       lev <- names(table(CD_shift$CD[, 1]))
@@ -137,25 +142,10 @@ CDCompute <- function(CO, OD, COt, MaxGap, order, np, nc, nr, nf, COtsample,
 # Imputation using the just created model 
 
 CreatedModelImputation <- function(order, CO, CD, COt, OD, ODi, pastDistrib, 
-  futureDistrib, available, REFORD_L, ncot, nc, np, nf, k, totV, regr, reglog, 
+  futureDistrib, available, REFORD_L, ncot, nc, np, nf, k, regr, reglog, 
   noise, shift, MaxGap)
 {
-  # Structure and building of the data matrix CDi
-  # The first column of CDi is the dependent variable (VD,
-  # response variable) that we have to implement during
-  # the current iteration (i.e. automatically a NA)
-  # The following columns are the corresponding
-  # independent variables (VIs, explanatory variables)
-  # coming from the past (np>0) or the future (nf>0)
-  # (ordered by time and corresponding to the current
-  # predictive pattern) and the distribution of the
-  # possible values (i.e. all possible categorical
-  # variables numbered from 1 to k and of course
-  # the value NA) respectively Before and After the NA to
-  # impute.
-
-
-  # Analysing the value of parameter available
+  
   if (available == TRUE) { # we take the previously imputed
     # data into account
     LOOKUP <- ODi
@@ -166,9 +156,6 @@ CreatedModelImputation <- function(order, CO, CD, COt, OD, ODi, pastDistrib,
   }
 
 
-  # Assigning the current "REFORD_order" matrix to the
-  # variable matrix REFORD
-  # (according to the current value of "order")
   REFORD <- as.matrix(REFORD_L[[order]])
   if (ncol(REFORD) == 1) {
     REFORD <- t(REFORD)
@@ -176,17 +163,17 @@ CreatedModelImputation <- function(order, CO, CD, COt, OD, ODi, pastDistrib,
   nr_REFORD <- nrow(REFORD)
   if (np > 0 & nf == 0) { # only PAST VIs do exist
     ODi <- ODiImputePAST(CO, ODi, CD, COt, REFORD, nr_REFORD, pastDistrib, 
-      futureDistrib, k, np, nf, nc, ncot, totV, reglog, LOOKUP, regr, noise)
+      futureDistrib, k, np, nf, nc, ncot, reglog, LOOKUP, regr, noise)
 
     #-------------------------------------------------------------------------
   } else if (np == 0 & nf > 0) { # only FUTURE VIs do exist
     ODi <- ODiImputeFUTURE(CO, ODi, CD, COt, REFORD, nr_REFORD, pastDistrib, 
-      futureDistrib, k, np, nf, nc, ncot, totV, reglog, LOOKUP, regr, noise)
+      futureDistrib, k, np, nf, nc, ncot, reglog, LOOKUP, regr, noise)
   } else { # meaning np>0 and nf>0 and that,
     # thus, PAST as well as FUTURE VIs
     # do exist
     ODi <- ODiImputePF(CO, ODi, CD, COt, REFORD, nr_REFORD, pastDistrib, 
-      futureDistrib, k, np, nf, nc, ncot, totV, reglog, LOOKUP, regr, noise, 
+      futureDistrib, k, np, nf, nc, ncot, reglog, LOOKUP, regr, noise, 
       shift, MaxGap, order)
   }
   return(ODi)
@@ -198,7 +185,7 @@ CreatedModelImputation <- function(order, CO, CD, COt, OD, ODi, pastDistrib,
 # Imputation where only FUTURE VIs exist
 
 ODiImputeFUTURE <- function(CO, ODi, CD, COt, REFORD, nr_REFORD, pastDistrib, 
-  futureDistrib, k, np, nf, nc, ncot, totV, reglog, LOOKUP, regr, noise)
+  futureDistrib, k, np, nf, nc, ncot, reglog, LOOKUP, regr, noise)
 {
   for (u in 1:nr_REFORD) {
     i <- REFORD[u, 1]
@@ -330,7 +317,7 @@ ODiImputeFUTURE <- function(CO, ODi, CD, COt, REFORD, nr_REFORD, pastDistrib,
 
 
     # Check for missing-values among predictors
-    if (max(is.na(CDi[1, 2:totV])) == 0) {
+    if (max(is.na(CDi[1, 2:ncol(CDi)])) == 0) {
       ODi <- RegrImpute(ODi, CDi, regr, reglog, noise, i, j, k)
     }
   }
