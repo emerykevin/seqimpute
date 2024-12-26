@@ -350,6 +350,35 @@ test_that("Both SLG", {
   expect_no_error(seqimpute(gameadd.traj, nf = 2, np = 2,m=2))
 })
 
+library("TraMineR")
+data(mvad)
+mvad.miss <- mvad[,17:86]
+mvad.miss[13,3:4]<- NA
+mvad.miss[45,5:7] <- NA
+test_that("Left SLG", {
+  skip_on_cran()
+  expect_no_error(seqimpute(mvad.miss, np=8,m=2))
+})
+
+test_that("Left SLG", {
+  skip_on_cran()
+  expect_no_error(seqimpute(mvad.miss, np=8,m=2,timing=T))
+})
+
+
+mvad.miss <- mvad[,17:86]
+mvad.miss[13,67:69]<- NA
+mvad.miss[45,65:67] <- NA
+test_that("Right SLG", {
+  skip_on_cran()
+  expect_no_error(seqimpute(mvad.miss, nf=6,m=2))
+})
+
+test_that("Right SLG", {
+  skip_on_cran()
+  expect_no_error(seqimpute(mvad.miss, nf=6,m=2,timing=T))
+})
+
 ### b. MICT-timing ####
 test_that("Left SLG", {
   skip_on_cran()

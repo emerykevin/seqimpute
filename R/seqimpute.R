@@ -210,14 +210,12 @@ seqimpute <- function(data, var = NULL, np = 1, nf = 1, m = 5, timing = FALSE,
     }
     return(dataOD$OD)
   }
-  
   imporder <- OrderCreation(dataOD$OD, dataOD$nr, dataOD$nc, np, nf, npt, nfi, 
                             end.impute)
   
   rownamesDataset <- rownames(dataOD$OD)
   nrowsDataset <- nrow(dataOD$OD)
-  
-  
+
   # Setting parallel or sequential backend and  random seed
   if (ParExec & (parallel::detectCores() > 2 & m > 1)) {
     if (is.null(ncores)) {
@@ -299,9 +297,7 @@ seqimpute <- function(data, var = NULL, np = 1, nf = 1, m = 5, timing = FALSE,
   }
   names(RESULT) <- paste0("imp",1:m)
   
-  # RESULT <- rbind(cbind(replicate(dataOD$nr, 0), dataOD$OD), RESULT)
-  
-  # X. Final conversions -----------------------------------------------------
+ 
   RESULT <- lapply(RESULT,FinalResultConvert, ODClass = dataOD$ODClass,
                    ODlevels = dataOD$ODlevels, rownamesDataset = rownamesDataset, 
                    nrowsDataset = nrowsDataset, nr = dataOD$nr, nc = dataOD$nc, 
@@ -342,71 +338,9 @@ seqimpute_standard <- function(dataOD, imporder=NULL,
   
   regr <- check.regr(regr)
   dataOD$ncot <- check.ncot(dataOD$ncot,dataOD$nc)
-  
-  # 1. Analysis of OD and creation of matrices ORDER, ORDER2 and ORDER3 
-  #imporder <- OrderCreation(dataOD$OD, dataOD$nr, dataOD$nc, np, nf, npt, nfi, end.impute)
-  
-  
-
-  # # Setting parallel or sequential backend and  random seed
-  # if (ParExec & (parallel::detectCores() > 2 & m > 1)) {
-  #   if (is.null(ncores)) {
-  #     Ncpus <- min(m, parallel::detectCores() - 1)
-  #   } else {
-  #     Ncpus <- min(ncores, parallel::detectCores() - 1)
-  #   }
-  #   cl <- parallel::makeCluster(Ncpus)
-  #   doSNOW::registerDoSNOW(cl) 
-  #   if (SetRNGSeed) {
-  #     doRNG::registerDoRNG(SetRNGSeed)
-  #   }
-  #   # set progress bar for parallel processing
-  #   pb <- txtProgressBar(max = m, style = 3)
-  #   progress <- function(n) setTxtProgressBar(pb, n)
-  #   opts <- list(progress = progress)
-  # 
-  #   # condition used to run code part needed for parallel processing
-  #   ParParams <- TRUE
-  # } else {
-  #   if (ParExec & m == 1) {
-  #     if (verbose == TRUE) {
-  #       message("/!\\ The number of multiple imputation is 1, parallel 
-  #           processing is only available for m > 1.")
-  #     }
-  #   } else if (ParExec) {
-  #     if (verbose == TRUE) {
-  #       message(paste("/!\\ The number of cores of your processor does not 
-  #         allow paralell processing, at least 3 cores are needed."))
-  #     }
-  #   }
-  #   if (SetRNGSeed) {
-  #     set.seed(SetRNGSeed)
-  #   }
-  # 
-  #   foreach::registerDoSEQ()
-  #   opts <- NULL
-  # 
-  #   # condition used to run code part needed for sequential processing
-  #   ParParams <- FALSE
-  # }
-
-
-  # # Beginning of the multiple imputation (imputing "mi" times)
-  # o <- NULL
-  # RESULT <- foreach(o = 1:m, .inorder = TRUE, 
-  #     .options.snow = opts) %dopar% {
-  #   if (!ParParams) {
-  #     if (verbose == TRUE) {
-  #       cat("iteration :", o, "/", m, "\n")
-  #     }
-  #   }
     
-    # 3. Imputation using a specific model --------------------------------
     if (max(imporder$ORDER) != 0) {
-      # Otherwise if there is only 0 in ORDER,
-      # there is no need to impute internal gaps
-      # and we directly jump to the imputation of
-      # external gaps (i.e. points 4. and 5.)
+      
       if (verbose == TRUE) {
         print("Imputation of the internal gaps...")
       }
@@ -435,7 +369,6 @@ seqimpute_standard <- function(dataOD, imporder=NULL,
           ncot = dataOD$ncot, nfi = nfi, regr = regr, k = dataOD$k, 
           available = available, noise = dataOD$noise, ...)
     }
-    # 5. Imputing terminal NAs ----------------------------------------------
     if (imporder$MaxTermGapSize != 0) {
       # we only impute the terminal
       # gaps if npt > 0
@@ -451,7 +384,6 @@ seqimpute_standard <- function(dataOD, imporder=NULL,
           nr = dataOD$nr, nc = dataOD$nc, ud = dataOD$ud, 
           available = available, k = dataOD$k, noise = dataOD$noise, ...)
     }
-    # 6. Imputing SLG NAs --------------------------------------------------
       # Checking if we have to impute
       # left-hand side SLG
     if (max(imporder$ORDERSLGLeft) != 0) { 
@@ -512,20 +444,5 @@ seqimpute_standard <- function(dataOD, imporder=NULL,
     }
 
     return(dataOD$ODi)
-  # }
-  # if (ParParams) {
-  #   parallel::stopCluster(cl)
-  # }
-  # 
-  # names(RESULT) <- paste0("imp",1:m)
-  # 
-  # # RESULT <- rbind(cbind(replicate(dataOD$nr, 0), dataOD$OD), RESULT)
-  # 
-  # # X. Final conversions -----------------------------------------------------
-  # RESULT <- lapply(RESULT,FinalResultConvert, ODClass = dataOD$ODClass,
-  #     ODlevels = dataOD$ODlevels, rownamesDataset = rownamesDataset, 
-  #     nrowsDataset = nrowsDataset, nr = dataOD$nr, nc = dataOD$nc, 
-  #     rowsNA = dataOD$rowsNA, mi = m)
-  # return(RESULT)
 
 }

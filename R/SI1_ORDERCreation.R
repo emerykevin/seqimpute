@@ -142,6 +142,73 @@ OrderCreation <- function(OD, nr, nc, np, nf, npt, nfi, end.impute) {
   }else{
     ORDList$REFORDT_L <- list()
   }
+  
+  if(max(ORDList$ORDERSLGLeft)>0){
+    ORDList$REFORDSLGLeft <- list()
+    ORDList$MaxSLGLeftGapSize <- rep(0,np)
+    for (h in 2:np) {
+      if (max(ORDList$ORDERSLGLeft[, h]) > 0) {
+        ORDERSLG_temp <- SLGMatrix_temp(nr, nc, h, ORDList$ORDERSLGLeft)$ORDERSLG_temp
+        if (max(ORDERSLG_temp) == 0) {
+          next
+        }
+        
+        tmp <- REFORDInit(ORDERSLG_temp, nr, nc)
+        
+        ORDList$REFORDSLGLeft[[h]] <- tmp$REFORD_L
+        ORDList$MaxSLGLeftGapSize[h] <- tmp$MaxGap
+      }
+    }
+  }
+  
+  if(max(ORDList$ORDERSLGRight)>0){
+    ORDList$REFORDSLGRight <- list()
+    ORDList$MaxSLGRightGapSize <- rep(0, nc-1)
+    for (h in (nc - 1):(nc - nf + 1)) {
+      if (max(ORDList$ORDERSLGRight[, h]) > 0) {
+        ORDERSLG_temp <- SLGMatrixRight_temp(nr, nc, h, ORDList$ORDERSLGRight)$ORDERSLGRight_temp
+        if (max(ORDERSLG_temp) == 0) {
+          next
+        }
+        tmp <- REFORDInit(ORDERSLG_temp, nr, nc)
+        ORDList$REFORDSLGRight[[h]] <- tmp$REFORD_L
+        ORDList$MaxSLGRightGapSize[h] <- tmp$MaxGap
+      }
+    }
+  }
+  
+  
+  if(max(ORDList$ORDERSLGBoth)>0){
+    ORDList$REFORDSLGBoth <- list()
+    ORDList$MaxSLGBothGapSize <- matrix(0, np,nc-1)
+    for(g in 2:np){
+      ORDList$REFORDSLGBoth[[g]] <- list()
+      if(sum(ORDList$ORDERSLGBoth[, g - 1] == 0 & 
+            ORDList$ORDERSLGBoth[, g] != 0) > 0){
+        tt <- which(ORDList$ORDERSLGBoth[, g - 1] == 0 & 
+                      ORDList$ORDERSLGBoth[, g] != 0)
+        tmpORDER <- matrix(0, nrow(ORDList$ORDERSLGBoth), 
+                           ncol(ORDList$ORDERSLGBoth))
+        tmpORDER[tt, g:ncol(ORDList$ORDERSLGBoth)] <- ORDList$ORDERSLGBoth[tt, 
+                                                        g:ncol(ORDList$ORDERSLGBoth)]
+        
+        for (h in (nc - 1):(nc - nf + 1)) {
+          if (max(tmpORDER[, h]) > 0) {
+            ORDERSLG_temp <- SLGMatrixRight_temp(nr, nc, h, tmpORDER)$ORDERSLGRight_temp
+            if (max(ORDERSLG_temp) == 0) {
+              next
+            }
+            tmp <- REFORDInit(ORDERSLG_temp, nr, nc)
+            ORDList$REFORDSLGBoth[[g]][[h]] <- tmp$REFORD_L
+            ORDList$MaxSLGBothGapSize[g,h] <- tmp$MaxGap
+          }
+        }
+        
+      }
+      
+    }
+  }
+  
   return(ORDList)
 }
 

@@ -23,7 +23,7 @@ LSLGNAsImpute <- function(OD, ODi, covariates, time.covariates, COtsample,
       # to the next column of ORDERSLGLeft
 
       ParamList[c("ORDERSLG_temp","np_temp")] <- SLGMatrix_temp(nr, 
-        nc, nf, h, ORDERSLG, nco, ncot, pastDistrib, futureDistrib, k)
+        nc, h, ORDERSLG)
 
       if (max(ParamList$ORDERSLG_temp) == 0) {
         next
@@ -115,8 +115,7 @@ RSLGNAsImpute <- function(OD, ODi, covariates, time.covariates, COtsample,
       # simply can go to the next column of ORDERSLGRight
 
       ParamList[c("ORDERSLGRight_temp",
-        "nf_temp")] <- SLGMatrixRight_temp(nr, nc, np, h, ORDERSLGRight, nco, 
-        ncot, pastDistrib, futureDistrib, k)
+        "nf_temp")] <- SLGMatrixRight_temp(nr, nc, h, ORDERSLGRight)
 
       if (max(ParamList$ORDERSLGRight_temp) == 0) {
         next
@@ -184,8 +183,7 @@ RSLGNAsImpute <- function(OD, ODi, covariates, time.covariates, COtsample,
   return(ODi)
 }
 
-SLGMatrix_temp <- function(nr, nc, nf, h, ORDERSLG, nco, ncot, pastDistrib, 
-  futureDistrib, k) 
+SLGMatrix_temp <- function(nr, nc, h, ORDERSLG) 
 {
   # Creation of the temporary SLG matrices for the left-hand
   # side of OD
@@ -220,14 +218,13 @@ SLGMatrix_temp <- function(nr, nc, nf, h, ORDERSLG, nco, ncot, pastDistrib,
 
   # Adjusting the matrix ORDERSLG_temp and
   # storing the coordinates of the NA to impute
-  return(list(ORDERSLG_temp, np_temp))
+  return(list(ORDERSLG_temp=ORDERSLG_temp, np_temp=np_temp))
 }
 
 
 
 
-SLGMatrixRight_temp <- function(nr, nc, np, h, ORDERSLGRight, nco, ncot, 
-  pastDistrib, futureDistrib, k) 
+SLGMatrixRight_temp <- function(nr, nc, h, ORDERSLGRight) 
 {
   # initialization of a new temporary
   # ORDERSLGRight_temp matrix
@@ -256,7 +253,7 @@ SLGMatrixRight_temp <- function(nr, nc, np, h, ORDERSLGRight, nco, ncot,
 
   # Adjusting the matrix ORDERSLGRight_temp and
   # storing the coordinates of the NA to impute
-  return(list(ORDERSLGRight_temp, nf_temp))
+  return(list(ORDERSLGRight_temp=ORDERSLGRight_temp, nf_temp=nf_temp))
 }
 
 
@@ -266,69 +263,25 @@ SLGMatrixRight_temp <- function(nr, nc, np, h, ORDERSLGRight, nco, ncot,
 SLGCDMatBuild <- function(CO, COt, OD, order, MaxGapSLGLeft, np, ncot, nr, nc, 
   nf, COtsample, pastDistrib, futureDistrib, k) 
 {
-  # Building of a data matrix for the computation
-  # of the model
-
   ud <- nc - (MaxGapSLGLeft - order + np + nf)
-  # number of usable data for each row of OD
-  # size of the current mobile caracteristic frame
-  # (that changes according to "order") which is
-  # equal to nc-ud+1
+  
   frameSize <- MaxGapSLGLeft - order + np + nf + 1
-  # Structure and building of the data matrix CD
-  # The first column of CD is the dependent
-  # variable (VD, response variable)
-  # The following columns are the independent
-  # variables (VIs, explanatory variables) coming
-  # from the past (np>0) or the future (nf>0)
-  # ordered by time and the distribution of
-  # the possible values (i.e. all
-  # possible categorical variables numbered from
-  # 1 to k and of course the value NA)
-  # respectively Before and After the NA to impute
-
-
-  # initialization of the current very left part
-  # of the predictive model matrix ("matrice de
-  # modele de prediction") with NA everywhere
-  # (/!\ for each "order", we are going to build
-  # such a CD)
 
   CD <- matrix(NA, nrow = nr * ud, ncol = 1)
-  # Dealing with the change of shape of the
-  # prediction frame (according to whether the
-  # imputed data is located at the beginning
-  # (left) of a gap or at the end (right))
-  # The purpose of this if statement is to detect
-  # if we have to insert a shift (to jump at the
-  # end of the gap) or not
+  
   if((np > 0 & nf > 0) & ((MaxGapSLGLeft %% 2 == 0 & order %% 2 == 0) | 
     (MaxGapSLGLeft %% 2 != 0 & order %% 2 != 0))) {
     shift <- MaxGapSLGLeft - order
-    # jumping at the end of the gap
   } else {
     shift <- 0
-    # no shift is needed (note that no shift
-    # is needed for the case of model 2
-    # (only past) and model 3 (only future))
+   
   }
 
   iter <- 1
-  # initialisation of the number of
-  # iterations of the following for loops
-
-
-  # For left SLG, naturally only the cases "only
-  # PAST" and "PAST and FUTURE" are possible to
-  # meet (because np has to be greater than
-  # 0, otherwise, it would mean that we are not
-  # in the case of a SLG and that we
-  # can impute it as a usual internal gap)
-  # Only PAST
+ 
   if (np > 0 & nf == 0) {
     CD <- PastVICompute(CD, CO, OD, ncot, frameSize, iter, nr, nc, ud, np, 
       COtsample, COt, pastDistrib, futureDistrib, k)
-    # PAST and FUTURE
   }else if(nf >0 & np==0){
     CD <- FutureVICompute(CD, CO, OD, ncot, frameSize, iter, nr, nc, ud, np, 
                             COtsample, COt, pastDistrib, futureDistrib, k, nf)
