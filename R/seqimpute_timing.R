@@ -6,15 +6,6 @@ seqimpute_timing <- function(dataOD, imporder, regr = "multinom", np = 1, nf = 0
   
   noise <- 0
   
-  tmp <- check.predictors(np, nf, nfi, npt)
-  np <- tmp$np
-  nf <- tmp$nf
-  nfi <- tmp$nfi
-  npt <- tmp$npt
-  
-  regr <- check.regr(regr)
-  dataOD$ncot <- check.ncot(dataOD$ncot,dataOD$nc)
-  
   if (max(imporder$ORDER)> 0) {
     if (verbose) {
       print("Imputation of the internal gaps...")
@@ -42,13 +33,12 @@ seqimpute_timing <- function(dataOD, imporder, regr = "multinom", np = 1, nf = 0
                             pastDistrib, futureDistrib=FALSE, available,
                             imporder$REFORDT_L, frame.radius, verbose, ...)
   }
-  if (max(imporder$ORDERSLGLeft) != 0 & !is.null(imporder$ORDERSLGLeft)) {
+  if (max(imporder$MaxSLGLeftGapSize) > 0) {
     if (verbose == TRUE) {
       print("Imputation of the left-hand side SLG...")
     }
     
     for (h in 2:np){
-      print(h)
       if (imporder$MaxSLGLeftGapSize[h] > 0) {
         np_temp <- h - 1
         
@@ -60,7 +50,7 @@ seqimpute_timing <- function(dataOD, imporder, regr = "multinom", np = 1, nf = 0
       }
     }
   }
-  if (max(imporder$ORDERSLGRight) != 0 & !is.null(imporder$ORDERSLGRight)) {
+  if (max(imporder$MaxSLGRightGapSize) > 0) {
     if (verbose == TRUE) {
       print("Imputation of the right-hand side SLG...")
     }

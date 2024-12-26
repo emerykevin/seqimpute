@@ -871,7 +871,7 @@ ComputeModel <- function(CD, regr, np, nf, k, ...) {
 
 
   colnames(CD) <- paste("V", 1:ncol(CD), sep = "")
-  
+
   if (regr == "rf") { 
 
     CD[, (1:(1 + npfi))] <- lapply(CD[, (1:(1 + npfi))], 

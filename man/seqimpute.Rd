@@ -101,7 +101,23 @@ distribution as a predictor in the imputation model.}
 \item{...}{Named arguments that are passed down to the imputation functions.}
 }
 \value{
-Returns an S3 object of class \code{seqimp}.
+An object of class \code{seqimp}, which is a list with the following 
+elements:
+\describe{
+  \item{\code{data}}{A \code{data.frame} containing the original 
+  (incomplete) data.}
+  \item{\code{imp}}{A list of \code{m} \code{data.frame} corresponding to 
+  the imputed datasets.}
+  \item{\code{m}}{The number of imputations.}
+  \item{\code{method}}{A character vector specifying whether MICT or 
+  MICT-timing was used.}
+  \item{\code{np}}{Number of prior states included in the imputation model.}
+  \item{\code{nf}}{Number of subsequent states included in the imputation 
+  model.}
+  \item{\code{regr}}{A character vector specifying whether multinomial or
+  random forest imputation models were applied.}
+  \item{\code{call}}{The call that created the object.}
+}
 }
 \description{
 The seqimpute package implements the MICT and MICT-timing 

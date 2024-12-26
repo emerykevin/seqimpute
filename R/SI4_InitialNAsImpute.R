@@ -11,23 +11,16 @@ ImputingInitialNAs <- function(OD, covariates, time.covariates, ODi,
   # 4.1.-2. Creation of ORDERI -------------------------------------------------
   REFORDI_L <- REFORDICreation(nr, nc, InitGapSize, MaxInitGapSize)
 
-
-  # Case when there is not enough observations after the longest initial gap
-  # -> nfi is therefore reduced
   if (nfi > nc - MaxInitGapSize) {
     nfi <- nc - MaxInitGapSize
     
   }
-  # 4.3. Imputation using a specific model -------------------------------------
-
-  # 4.3.1 Building of the data matrix CD for the computation of the model ------
-  CD <- CDMatCreate(covariates, COtsample, OD, time.covariates, nfi, nr, nc, 
-    ncot, futureDistrib, k)
-
+  CD <- CDCompute(covariates, OD, time.covariates, MaxGap=0, order=0, np=0, nc, nr, nfi, COtsample, 
+                        pastDistrib=FALSE, futureDistrib, ncot, k)$CD
+  
   # 4.3.2 Computation of the model (Dealing with the LOCATIONS of imputation) --
   log_CD <- list()
   log_CD[c("reglog", "CD")] <- ComputeModel(CD, regr, 0, nfi, k, ...)
-
   # 4.3.3 Imputation using the just created model 
   ODi <- Init_NA_CreatedModelImputation(OD, ODi, covariates, log_CD$CD, 
     time.covariates, MaxInitGapSize, REFORDI_L, futureDistrib, nc, k, 
@@ -292,7 +285,7 @@ Init_NA_CreatedModelImputation <- function(OD, ODi, CO, CD, COt,
       # covariates)
       # Checking if COt is NOT completely empty
       CDi <- COtselectionSpe(CDi, COt, ncot, nc, i, j, k)
-
+      
       # Check for missing-values among predictors
       if (max(is.na(CDi[1, 2:ncol(CDi)])) == 0) {
         ODi <- RegrImpute(ODi, CDi, regr, reglog, noise, i, j, k)

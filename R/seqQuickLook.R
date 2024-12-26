@@ -71,60 +71,63 @@ seqQuickLook <- function(data, var=NULL, np = 1, nf = 1) {
     k <- max(data)
   }
 
-  datadata <- list()
-  datadata[c("data", "CO", "COt", "rowsNA")] <- deleteNaRows(data, 
-    matrix(NA, nrow = 1, ncol = 1), matrix(NA, nrow = 1, ncol = 1))
+  # datadata <- list()
+  # datadata[c("data", "CO", "COt", "rowsNA")] <- deleteNaRows(data, 
+  #   matrix(NA, nrow = 1, ncol = 1), matrix(NA, nrow = 1, ncol = 1))
+  # 
+  rowsNA <- rows.allmiss(data)
+  
 
 
 
   # Naming the number of rows and columns of the original dataset data
-  nr <- nrow(datadata$data)
-  nc <- ncol(datadata$data)
+  nr <- nrow(data)
+  nc <- ncol(data)
 
-
-
-
-
-  # 1. Analysis of data and creation of matrices ORDER, ORDER2 and ORDER3 -----
-  datadata[c("MaxInitGapSize", "InitGapSize", "MaxTermGapSize", "TermGapSize", 
-    "MaxGap", "ORDER", "ORDER2", "ORDER3")] <- OrderCreation(datadata$data, 
-          nr, nc)
+  # # 1. Analysis of data and creation of matrices ORDER, ORDER2 and ORDER3 -----
+  # datadata[c("MaxInitGapSize", "InitGapSize", "MaxTermGapSize", "TermGapSize", 
+  #   "MaxGap", "ORDER", "ORDER2", "ORDER3")] <- OrderCreation(data, 
+  #         nr, nc)
+  # 
+  # 
+  # datadata[c("ORDERSLGLeft", "ORDERSLGRight", "ORDERSLGBoth", "LongGap", 
+  #     "MaxGap", "REFORD_L", "ORDER")] <- ImputeOrderComputation(datadata$ORDER, 
+  #     datadata$ORDER3, datadata$MaxGap, np, nf, nr, nc)
+  # 
+  imporder <- OrderCreation(data, nr, nc, np, nf, 1, 1, 
+                            end.impute=TRUE)
   
-  
-  datadata[c("ORDERSLGLeft", "ORDERSLGRight", "ORDERSLGBoth", "LongGap", 
-      "MaxGap", "REFORD_L", "ORDER")] <- ImputeOrderComputation(datadata$ORDER, 
-      datadata$ORDER3, datadata$MaxGap, np, nf, nr, nc)
 
-  if (max(datadata$ORDER) > 0) {
-    MDGapsChart[1, 1] <- min(datadata$ORDER[datadata$ORDER > 0])
-    MDGapsChart[1, 2] <- max(datadata$ORDER)
+  if (max(imporder$ORDER) > 0) {
+    MDGapsChart[1, 1] <- min(imporder$ORDER[imporder$ORDER > 0])
+    MDGapsChart[1, 2] <- max(imporder$ORDER)
   }
   # Number of Internal Gaps
-  # Transforming datadata$ORDER in a single row vector
-  datadata$ORDERVect <- as.vector(t(datadata$ORDER))
+  # Transforming imporder$ORDER in a single row vector
+  imporder$ORDERVect <- as.vector(t(imporder$ORDER))
   # Transforming this single row vector into class character
-  datadata$ORDERVectChar <- paste(datadata$ORDERVect, collapse = "")
+  imporder$ORDERVectChar <- paste(imporder$ORDERVect, collapse = "")
   # Identifying the patterns "0 1" (this is the signature  of an internal gap
   # (it always indicates the beginning of an internal gap!))
-  MDGapsChart[1, 3] <- str_count(datadata$ORDERVectChar, pattern = "01")
-  MDGapsChart[1, 4] <- sum(datadata$ORDER > 0)
+  MDGapsChart[1, 3] <- str_count(imporder$ORDERVectChar, pattern = "01")
+  MDGapsChart[1, 4] <- sum(imporder$ORDER > 0)
 
 
-  if (max(datadata$InitGapSize) > 0) {
-    MDGapsChart[2,1] <- min(datadata$InitGapSize[datadata$InitGapSize > 0])
-    MDGapsChart[2,2] <- max(datadata$InitGapSize)
-    MDGapsChart[2,3]<-sum(table(datadata$InitGapSize[datadata$InitGapSize>0]))
-    MDGapsChart[2,4] <- sum(datadata$InitGapSize)
+  if (max(imporder$InitGapSize) > 0) {
+    MDGapsChart[2,1] <- min(imporder$InitGapSize[imporder$InitGapSize > 0])
+    MDGapsChart[2,2] <- max(imporder$InitGapSize)
+    MDGapsChart[2,3]<-sum(table(imporder$InitGapSize[imporder$InitGapSize>0]))
+    MDGapsChart[2,4] <- sum(imporder$InitGapSize)
   }
 
-  if (max(datadata$TermGapSize) > 0) {
-    MDGapsChart[3,1] <- min(datadata$TermGapSize[datadata$TermGapSize > 0])
-    MDGapsChart[3,2] <- max(datadata$TermGapSize)
-    MDGapsChart[3,3]<-sum(table(datadata$TermGapSize[datadata$TermGapSize>0]))
-    MDGapsChart[3,4] <- sum(datadata$TermGapSize)
+  if (max(imporder$TermGapSize) > 0) {
+    MDGapsChart[3,1] <- min(imporder$TermGapSize[imporder$TermGapSize > 0])
+    MDGapsChart[3,2] <- max(imporder$TermGapSize)
+    MDGapsChart[3,3]<-sum(table(imporder$TermGapSize[imporder$TermGapSize>0]))
+    MDGapsChart[3,4] <- sum(imporder$TermGapSize)
   }
 
-  LeftGap <- rowSums(datadata$ORDERSLGLeft > 0)
+  LeftGap <- rowSums(imporder$ORDERSLGLeft > 0)
   if (max(LeftGap) > 0) {
     MDGapsChart[4, 1] <- min(LeftGap[LeftGap > 0])
     MDGapsChart[4, 2] <- max(LeftGap)
@@ -132,7 +135,7 @@ seqQuickLook <- function(data, var=NULL, np = 1, nf = 1) {
     MDGapsChart[4, 4] <- sum(LeftGap)
   }
 
-  RightGap <- rowSums(datadata$ORDERSLGRight > 0)
+  RightGap <- rowSums(imporder$ORDERSLGRight > 0)
   if (max(RightGap) > 0) {
     MDGapsChart[5, 1] <- min(RightGap[RightGap > 0])
     MDGapsChart[5, 2] <- max(RightGap)
@@ -140,7 +143,7 @@ seqQuickLook <- function(data, var=NULL, np = 1, nf = 1) {
     MDGapsChart[5, 4] <- sum(RightGap)
   }
 
-  BothGap <- rowSums(datadata$ORDERSLGBoth > 0)
+  BothGap <- rowSums(imporder$ORDERSLGBoth > 0)
   if (max(BothGap) > 0) {
     MDGapsChart[6, 1] <- min(BothGap[BothGap > 0])
     MDGapsChart[6, 2] <- max(BothGap)

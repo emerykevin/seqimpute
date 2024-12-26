@@ -174,22 +174,15 @@
 #'
 #' @export
 seqimpute <- function(data, var = NULL, np = 1, nf = 1, m = 5, timing = FALSE, 
-  frame.radius = 0, covariates = NULL, 
-  time.covariates = NULL, regr = "multinom",
-  npt = 1, nfi = 1, ParExec = FALSE, ncores = NULL, 
-  SetRNGSeed = FALSE, end.impute = TRUE, verbose = TRUE, available = TRUE, 
-  pastDistrib = FALSE, futureDistrib = FALSE,...)
+                      frame.radius = 0, covariates = NULL, 
+                      time.covariates = NULL, regr = "multinom",
+                      npt = 1, nfi = 1, ParExec = FALSE, ncores = NULL, 
+                      SetRNGSeed = FALSE, end.impute = TRUE, verbose = TRUE, available = TRUE, 
+                      pastDistrib = FALSE, futureDistrib = FALSE,...)
 {
   
   call <- match.call()
   check.deprecated(...)
-  
-  # if (sum(is.na(data)) == 0) {
-  #   if (verbose == TRUE) {
-  #     message("This dataset has no missing values!")
-  #   }
-  #   return(data)
-  # }
   
   if (inherits(data, "stslist")) {
     valuesNA <- c(attr(data, "nr"), attr(data, "void"))
@@ -198,7 +191,7 @@ seqimpute <- function(data, var = NULL, np = 1, nf = 1, m = 5, timing = FALSE,
   }else{
     covariates <- covxtract(data, covariates)
     time.covariates <- covxtract(data, time.covariates)
-
+    
     data <- dataxtract(data, var)
   }
   
@@ -210,20 +203,27 @@ seqimpute <- function(data, var = NULL, np = 1, nf = 1, m = 5, timing = FALSE,
     }
     return(dataOD$OD)
   }
+  
+  tmp <- check.predictors(np, nf, nfi, npt)
+  np <- tmp$np
+  nf <- tmp$nf
+  nfi <- tmp$nfi
+  npt <- tmp$npt
+  
+  regr <- check.regr(regr)
+  
   imporder <- OrderCreation(dataOD$OD, dataOD$nr, dataOD$nc, np, nf, npt, nfi, 
                             end.impute)
   
-  rownamesDataset <- rownames(dataOD$OD)
-  nrowsDataset <- nrow(dataOD$OD)
-
-  # Setting parallel or sequential backend and  random seed
-  if (ParExec & (parallel::detectCores() > 2 & m > 1)) {
-    if (is.null(ncores)) {
-      Ncpus <- min(m, parallel::detectCores() - 1)
-    } else {
-      Ncpus <- min(ncores, parallel::detectCores() - 1)
-    }
-    cl <- parallel::makeCluster(Ncpus)
+  if(ParExec){
+    available.cores <- parallelly::availableCores(logical = TRUE)
+    ncores <- check.cores(ncores, available.cores, m)
+  }else{
+    ncores <- 1
+  }
+  
+  if(ncores > 1){
+    cl <- parallel::makeCluster(ncores)
     doSNOW::registerDoSNOW(cl) 
     if (SetRNGSeed) {
       doRNG::registerDoRNG(SetRNGSeed)
@@ -235,18 +235,7 @@ seqimpute <- function(data, var = NULL, np = 1, nf = 1, m = 5, timing = FALSE,
     
     # condition used to run code part needed for parallel processing
     ParParams <- TRUE
-  } else {
-    if (ParExec & m == 1) {
-      if (verbose == TRUE) {
-        message("/!\\ The number of multiple imputation is 1, parallel 
-            processing is only available for m > 1.")
-      }
-    } else if (ParExec) {
-      if (verbose == TRUE) {
-        message(paste("/!\\ The number of cores of your processor does not 
-          allow paralell processing, at least 3 cores are needed."))
-      }
-    }
+  }else{
     if (SetRNGSeed) {
       set.seed(SetRNGSeed)
     }
@@ -272,12 +261,11 @@ seqimpute <- function(data, var = NULL, np = 1, nf = 1, m = 5, timing = FALSE,
                       
                       if (timing == FALSE) {
                         RESULT <- seqimpute_standard(dataOD, imporder=imporder,
-                                    np = np, nf = nf, m = m, covariates = covariates,
-                                    time.covariates = time.covariates, regr = regr, nfi = nfi, npt = npt,
-                                    available = available, pastDistrib = pastDistrib,
-                                    futureDistrib = futureDistrib,
-                                    verbose = verbose, ...)
-                        #method <- "MICT"
+                                                     np = np, nf = nf, m = m, covariates = covariates,
+                                                     time.covariates = time.covariates, regr = regr, nfi = nfi, npt = npt,
+                                                     available = available, pastDistrib = pastDistrib,
+                                                     futureDistrib = futureDistrib,
+                                                     verbose = verbose, ...)
                       }else {
                         RESULT <- seqimpute_timing(dataOD, imporder=imporder,
                                                    np = np, nf = nf, m = m, covariates = covariates,
@@ -285,7 +273,6 @@ seqimpute <- function(data, var = NULL, np = 1, nf = 1, m = 5, timing = FALSE,
                                                    available = available, pastDistrib = pastDistrib,
                                                    futureDistrib = futureDistrib,
                                                    verbose = verbose, frame.radius=frame.radius,...)
-                        #method <- "MICT-timing"
                       }
                       
                       
@@ -297,10 +284,11 @@ seqimpute <- function(data, var = NULL, np = 1, nf = 1, m = 5, timing = FALSE,
   }
   names(RESULT) <- paste0("imp",1:m)
   
- 
+  
   RESULT <- lapply(RESULT,FinalResultConvert, ODClass = dataOD$ODClass,
-                   ODlevels = dataOD$ODlevels, rownamesDataset = rownamesDataset, 
-                   nrowsDataset = nrowsDataset, nr = dataOD$nr, nc = dataOD$nc, 
+                   ODlevels = dataOD$ODlevels, 
+                   rownamesDataset = rownames(dataOD$OD), 
+                   nrowsDataset = nrow(dataOD$OD), nr = dataOD$nr, nc = dataOD$nc, 
                    rowsNA = dataOD$rowsNA, mi = m)
   
   if(timing==TRUE){
@@ -310,7 +298,7 @@ seqimpute <- function(data, var = NULL, np = 1, nf = 1, m = 5, timing = FALSE,
     
   }
   seqimpobj <- list(data = data, imp = RESULT, m = m, method = method, 
-      np = np, nf = nf, regr = regr, call = call)
+                    np = np, nf = nf, regr = regr, call = call)
   
   oldClass(seqimpobj) <- "seqimp"
   
@@ -392,12 +380,13 @@ seqimpute_standard <- function(dataOD, imporder=NULL,
       }
       dataOD[["ODi"]] <- LSLGNAsImpute(OD = dataOD$OD, ODi = dataOD$ODi, 
           covariates = dataOD$CO, time.covariates = dataOD$COt, 
-          COtsample = dataOD$COtsample, ORDERSLG = imporder$ORDERSLGLeft,
+          COtsample = dataOD$COtsample,
           pastDistrib = pastDistrib, 
           futureDistrib = futureDistrib, regr = regr, np = np, 
           nr = dataOD$nr, nf = nf, nc = dataOD$nc, 
           ud = dataOD$ud, ncot = dataOD$ncot,nco = dataOD$nco, k = dataOD$k, 
-          noise = dataOD$noise, available = available, ...)
+          noise = dataOD$noise, available = available, REFORD_L = imporder$REFORDSLGLeft,
+          MaxGap=imporder$MaxSLGLeftGapSize,...)
     }
     # right-hand side SLG
     if (max(imporder$ORDERSLGRight) != 0) {
@@ -408,12 +397,13 @@ seqimpute_standard <- function(dataOD, imporder=NULL,
       }
       dataOD[["ODi"]] <- RSLGNAsImpute(OD = dataOD$OD, ODi = dataOD$ODi, 
           covariates = dataOD$CO, time.covariates = dataOD$COt, 
-          COtsample = dataOD$COtsample, ORDERSLGRight = imporder$ORDERSLGRight,
+          COtsample = dataOD$COtsample, 
           pastDistrib = pastDistrib, 
           futureDistrib = futureDistrib, regr = regr, np = np, 
           nr = dataOD$nr, nf = nf, nc = dataOD$nc, 
           ud = dataOD$ud, ncot = dataOD$ncot,nco = dataOD$nco, k = dataOD$k, 
-          noise = dataOD$noise, available = available, ...)
+          noise = dataOD$noise, available = available, REFORD_L = imporder$REFORDSLGRight,
+          MaxGap=imporder$MaxSLGRightGapSize,...)
     }
     # Checking if we have to impute
     # Both-hand side SLG
@@ -424,21 +414,21 @@ seqimpute_standard <- function(dataOD, imporder=NULL,
       for (h in 2:np) {
         if (sum(imporder$ORDERSLGBoth[, h - 1] == 0 & 
                 imporder$ORDERSLGBoth[, h] != 0) > 0) {
-          tt <- which(imporder$ORDERSLGBoth[, h - 1] == 0 & 
-                        imporder$ORDERSLGBoth[, h] != 0)
-          tmpORDER <- matrix(0, nrow(imporder$ORDERSLGBoth),
-            ncol(imporder$ORDERSLGBoth))
-          tmpORDER[tt, h:ncol(imporder$ORDERSLGBoth)] <- imporder$ORDERSLGBoth[tt, 
-              h:ncol(imporder$ORDERSLGBoth)]
-
+          # tt <- which(imporder$ORDERSLGBoth[, h - 1] == 0 & 
+          #               imporder$ORDERSLGBoth[, h] != 0)
+          # tmpORDER <- matrix(0, nrow(imporder$ORDERSLGBoth),
+          #   ncol(imporder$ORDERSLGBoth))
+          # tmpORDER[tt, h:ncol(imporder$ORDERSLGBoth)] <- imporder$ORDERSLGBoth[tt, 
+          #     h:ncol(imporder$ORDERSLGBoth)]
           dataOD[["ODi"]] <- RSLGNAsImpute(OD = dataOD$OD, ODi = dataOD$ODi, 
               covariates = dataOD$CO, time.covariates = dataOD$COt, 
-              COtsample = dataOD$COtsample, ORDERSLGRight = tmpORDER,
+              COtsample = dataOD$COtsample,
               pastDistrib = pastDistrib, 
               futureDistrib = futureDistrib, regr = regr, np = h - 1, 
               nr = dataOD$nr, nf = nf, nc = dataOD$nc, ud = dataOD$ud, 
               ncot = dataOD$ncot, nco = dataOD$nco, k = dataOD$k, 
-              noise = dataOD$noise, available = available, ...)
+              noise = dataOD$noise, available = available, REFORD_L = imporder$REFORDSLGBoth[[h]],
+              MaxGap=imporder$MaxSLGBothGapSize[h,],...)
         }
       }
     }

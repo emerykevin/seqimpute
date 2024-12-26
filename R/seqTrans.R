@@ -69,6 +69,8 @@
 #'
 #' @importFrom foreach foreach
 #' @importFrom foreach %dopar%
+#' 
+#' @importFrom parallelly availableCores
 #'
 #' @export
 seqTrans <- function(data, var = NULL, trans) {

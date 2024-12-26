@@ -11,6 +11,7 @@ seqaddNA(
   propdata = 1,
   pstart.high = 0.1,
   pstart.low = 0.005,
+  pcont = 0.66,
   maxgap = 3,
   maxprop = 0.75,
   only.traj = FALSE
@@ -27,7 +28,7 @@ are used.}
 \item{states.high}{A list of states with a higher probability of 
 initiating a subsequent missing data gap.}
 
-\item{propdata}{Proportion of observations for which missing data 
+\item{propdata}{Proportion of trajectories for which missing data 
 is simulated, as a decimal between 0 and 1.}
 
 \item{pstart.high}{Probability of starting a missing data gap for the 
@@ -36,11 +37,12 @@ states specified in the \code{states.high} argument.}
 \item{pstart.low}{Probability of starting a missing data gap for all 
 other states.}
 
+\item{pcont}{Probability of a missing data gap to continue.}
+
 \item{maxgap}{Maximum length of a missing data gap.}
 
 \item{maxprop}{Maximum proportion of missing data allowed in a sequence, 
-as a decimal between 0 and 1. If the proportion exceeds this value, the 
-simulation is rerun for the sequence.}
+as a decimal between 0 and 1.}
 
 \item{only.traj}{Logical, if \code{TRUE}, only the 
 trajectories (specified in \code{var}) are returned. If \code{FALSE}, 
@@ -50,9 +52,32 @@ the entire data frame is returned.}
 A data frame with simulated missing data.
 }
 \description{
-Generation of missing data under the form of gaps, which
-is the typical form of missing data with longitudinal data.
-It simulates MCAR or MAR missing data.
+Generation of missing data in sequence based on a Markovian 
+approach.
+}
+\details{
+The first timepoint of a trajectory has a \code{pstart.low} probability to
+be missing. For the next timepoints, the probabiltity to be missing depends
+on the previous timepoint. There are four cases:
+
+1. If the previous timepoint is missing and the maximum length of a 
+missing gap, which is specified by the argument \code{maxgap}, is reached,
+the timepoint is set as observed.
+
+2. If the previous timepoint is missing, but the maximum length of a gap is
+not reached, there is a \code{pcont} probability that this timepoint is missing.
+
+3. If the previous timepoint is observed and the previous timepoint belongs
+to the list of states specified by \code{pstart.high}, the probability to 
+be missing is \code{pstart.high}.
+
+4. If the previous timepoint is observed but the previous timepoint does not
+belong to the list of states specified by \code{pstart.high}, the 
+probability to be missing is \code{pstart.low}.
+
+If the proportion of missing data in a given trajectory exceeds the 
+proportion specified by \code{maxprop}, the missing data simulation is 
+repeated for the sequence.
 }
 \examples{
 # Generate MCAR missing data on the mvad dataset 

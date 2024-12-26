@@ -159,6 +159,8 @@ OrderCreation <- function(OD, nr, nc, np, nf, npt, nfi, end.impute) {
         ORDList$MaxSLGLeftGapSize[h] <- tmp$MaxGap
       }
     }
+  }else{
+    ORDList$MaxSLGLeftGapSize <- 0
   }
   
   if(max(ORDList$ORDERSLGRight)>0){
@@ -175,6 +177,8 @@ OrderCreation <- function(OD, nr, nc, np, nf, npt, nfi, end.impute) {
         ORDList$MaxSLGRightGapSize[h] <- tmp$MaxGap
       }
     }
+  }else{
+    ORDList$MaxSLGRightGapSize <- 0
   }
   
   

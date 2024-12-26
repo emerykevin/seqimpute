@@ -114,6 +114,7 @@ CDCompute <- function(CO, OD, COt, MaxGap, order, np, nc, nr, nf, COtsample,
   # of iterations of the
   # following for loops
   # Only PAST
+  
   if (np > 0 & nf == 0) {
     CD <- PastVICompute(CD, CO, OD, ncot, frameSize, iter, nr, nc, ud, np, 
       COtsample, COt, pastDistrib, futureDistrib, k)
@@ -122,7 +123,6 @@ CDCompute <- function(CO, OD, COt, MaxGap, order, np, nc, nr, nf, COtsample,
     # only FUTURE VIs do exist
     CD <- FutureVICompute(CD, CO, OD, ncot, frameSize, iter, nr, nc, ud, np, 
       COtsample, COt, pastDistrib, futureDistrib, k, nf)
-
     # PAST and FUTURE
   } else {
     # meaning np>0 and nf>0 and that, thus,

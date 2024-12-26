@@ -1,7 +1,7 @@
 Type: Package
 Package: seqimpute
 Title: Imputation of Missing Data in Sequence Analysis
-Version: 2.1.0
+Version: 2.1.1
 Authors@R: c(
     person("Kevin", "Emery", , "kevin.emery@unige.ch", role = c("aut", "cre")),
     person("Anthony", "Guinchard", role = "aut"),

@@ -18,8 +18,9 @@ are used.}
 
 \item{void.miss}{Logical, if \code{TRUE}, treats void elements as 
 missing values. This argument applies only to state sequence objects created 
-with \link[TraMineR]{seqdef}. Note that the default behavior of \code{seqdef} 
-is to treat missing data at the end of sequences as void elements.}
+with \link[TraMineR]{seqdef}. Note that the default behavior of 
+\link[TraMineR]{seqdef} is to treat missing data at the end of sequences as 
+void elements.}
 
 \item{...}{parameters to be passed to the \link[TraMineRextras]{seqimplic}
 function}

@@ -186,12 +186,12 @@ test_that("MICT-timing works with parallel computing", {
 ## b. ParExec with m=1 ####
 test_that("MICT", {
   skip_on_cran()
-  expect_message(seqimpute(gameadd.traj, ParExec = TRUE, m=1))
+  expect_no_error(seqimpute(gameadd.traj, ParExec = TRUE, m=1))
 })
 
 test_that("MICT-timing", {
   skip_on_cran()
-  expect_message(seqimpute(gameadd.traj, ParExec = TRUE, m=1, timing=TRUE))
+  expect_no_error(seqimpute(gameadd.traj, ParExec = TRUE, m=1, timing=TRUE))
 })
 
 ## c. ncores specified #####
@@ -220,12 +220,12 @@ test_that("MICT-timing", {
 ### ii. identical resuls with identiccal seed, single imputation 
 test_that("MICT", {
   skip_on_cran()
-  expect_equal(sum(seqimpute(gameadd.traj, ParExec = TRUE, ncores=2, SetRNGSeed=2, m=1)$imp[[1]] != seqimpute(gameadd.traj, ParExec = TRUE, ncores=2, SetRNGSeed = 2, m=1)$imp[[1]]),0)
+  expect_equal(sum(suppressWarnings(seqimpute(gameadd.traj, ParExec = TRUE, ncores=2, SetRNGSeed=2, m=1))$imp[[1]] != suppressWarnings(seqimpute(gameadd.traj, ParExec = TRUE, ncores=2, SetRNGSeed = 2, m=1))$imp[[1]]),0)
 })
 
 test_that("MICT-timing", {
   skip_on_cran()
-  expect_equal(sum(seqimpute(gameadd.traj, ParExec = TRUE, ncores=2, SetRNGSeed=2, timing=TRUE, m=1)$imp[[1]] != seqimpute(gameadd.traj, ParExec = TRUE, ncores=2,  SetRNGSeed = 2, timing=TRUE, m=1)$imp[[1]]),0)
+  expect_equal(sum(suppressWarnings(seqimpute(gameadd.traj, ParExec = TRUE, ncores=2, SetRNGSeed=2, timing=TRUE, m=1))$imp[[1]] != suppressWarnings(seqimpute(gameadd.traj, ParExec = TRUE, ncores=2,  SetRNGSeed = 2, timing=TRUE, m=1))$imp[[1]]),0)
 })
 
 # 5. var argument works correctly ####
