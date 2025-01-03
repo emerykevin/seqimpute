@@ -73,7 +73,7 @@ LSLGNAsImpute <- function(OD, ODi, covariates, time.covariates, COtsample,
           #     order, MaxGap[h], ParamList$shift)
           
           ODi <- CreatedModelImputation(order, covariates, log_CD$CD, 
-                                        time.covariates, OD, ODi, pastDistrib, futureDistrib, available, 
+                                        time.covariates, COtsample, OD, ODi, pastDistrib, futureDistrib, available, 
                                         REFORD_L[[h]], ncot, nc, np_temp, nf, k, regr, log_CD$reglog, noise, 
                                         ParamList$shift, MaxGap[h])
         }else{
@@ -131,7 +131,7 @@ RSLGNAsImpute <- function(OD, ODi, covariates, time.covariates, COtsample,
               np, nf_temp, k, ...)
           
           ODi <- CreatedModelImputation(order, covariates, log_CD$CD, 
-                                        time.covariates, OD, ODi, pastDistrib, futureDistrib, available, 
+                                        time.covariates, COtsample, OD, ODi, pastDistrib, futureDistrib, available, 
                                         REFORD_L[[h]], ncot, nc, np, nf_temp, k, regr, log_CD$reglog, noise, 
                                         ParamList$shift, MaxGap[h])
         }else{

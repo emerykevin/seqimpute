@@ -682,136 +682,326 @@ ODiImputePAST <- function(CO, ODi, CD, COt, REFORD, nr_REFORD, pastDistrib,
 ##################################################################
 # Imputation where past and future VIs exist
 
-ODiImputePF <- function(CO, ODi, CD, COt, REFORD, nr_REFORD, pastDistrib, 
-  futureDistrib, k, np, nf, nc, ncot, reglog, LOOKUP, regr, noise, 
-  shift, MaxGap, order)
+# ODiImputePF <- function(CO, ODi, CD, COt, REFORD, nr_REFORD, pastDistrib, 
+#   futureDistrib, k, np, nf, nc, ncot, reglog, LOOKUP, regr, noise, 
+#   shift, MaxGap, order)
+# {
+#   for (u in 1:nr_REFORD) {
+#     i <- REFORD[u, 1]
+#     # taking out the first coordinate
+#     # (row number in ORDER) from REFORD
+#     j <- REFORD[u, 2]
+# 
+#     # taking out the second coordinate
+#     # (column number in ORDER) from REFORD
+#     CDi <- matrix(NA, nrow = k, ncol = 1)
+# 
+#     # Matrix for past values
+#     shift <- as.numeric(shift)
+# 
+#     vect <- LOOKUP[i, (j - shift - np):(j - shift - 1)]
+# 
+#     CDpi <- matrix(vect, nrow = k, ncol = length(vect), byrow = TRUE)
+# 
+#     # Matrix for future values
+#     vect <- LOOKUP[i, 
+#       (j - shift + MaxGap - order + 1):(j - shift + MaxGap - order + nf)]
+#     CDfi <- matrix(vect, nrow = k, ncol = length(vect), byrow = TRUE)
+# 
+#     # Matrix for past distribution
+#     if (pastDistrib) {
+#       dbi <- summary(factor(LOOKUP[i, 1:(j - 1)], 
+#         levels = c(1:k), exclude = NULL)) / length(1:(j - 1))
+#       CDdbi <- matrix(dbi[1:k], nrow = k, ncol = k, byrow = TRUE)
+#     }
+#     # Matrix for future distribution
+#     if (futureDistrib) {
+#       dai <- summary(factor(LOOKUP[i, (j + 1):nc], 
+#         levels = c(1:k), exclude = NULL)) / length((j + 1):nc)
+#       CDdai <- matrix(dai[1:k], nrow = k, ncol = k, byrow = TRUE)
+#     }
+#     # Concatenating CDi
+#     CDi <- cbind(CDi, CDpi, CDfi)
+# 
+#     if (pastDistrib) {
+#       CDi <- cbind(CDi, CDdbi)
+#     }
+# 
+#     if (futureDistrib) {
+#       CDi <- cbind(CDi, CDdai)
+#     }
+# 
+#     CDi <- as.data.frame(CDi)
+#    
+#     
+#     if (regr == "rf") {
+#       for (v in 2:(1 + np + nf)) {
+#         CDi[, v] <- factor(CDi[, v], levels = c(1:(k + 1)))
+#         CDi[, v][is.na(CDi[, v])] <- k + 1
+#       }
+#       CDi[, 1] <- factor(CDi[, 1], levels = levels(CD[, 1]))
+#     } else {
+#       # multinom
+#       CDi[, 1] <- factor(CDi[, 1], levels = c(1:k))
+#       for (v in 2:(1 + np + nf)) {
+#         CDi[, v] <- factor(CDi[, v], levels = levels(CD[, v]), exclude = NULL)
+#       }
+#     }
+#     
+#     
+#     if (pastDistrib | futureDistrib) {
+#       CDi[, (1 + np + nf + 1):ncol(CDi)] <- lapply(
+#         CDi[, (1 + np + nf + 1):ncol(CDi)], as.numeric
+#         )
+#     }
+# 
+# 
+#     if (all(is.na(CO)) == FALSE) {
+#       # Checking if CO is NOT
+#       # completely empty
+#       # Creation of the matrix COi used in 3.3
+#       if (is.null(dim(CO))) {
+#         COi <- do.call(rbind, replicate(k, as.data.frame(CO[i]), 
+#           simplify = FALSE))
+#       } else {
+#         COi <- do.call(rbind, replicate(k, as.data.frame(CO[i, ]), 
+#           simplify = FALSE))
+#       }
+#       # Concatenating CDi and COi into CDi
+#       CDi <- cbind(CDi, COi)
+#       # Transformation of the names of the columns
+#       # of CDi (called V1, V2, ..., "VtotV")
+#       colnames(CDi) <- paste("V", 1:ncol(CDi), sep = "")
+#     }
+#     # Else, in case CO is empty (i.e. we don't
+#     # consider any covariate)
+#     # simply continue with the current CDi
+# 
+#     # Eventually concatenating CDi with
+#     # COtselected_i (the matrix containing the
+#     # current time-dependent covariates)
+#     # Checking if COt is NOT completely empty
+#     if (ncot > 0) {
+#       COtselected_i <- as.data.frame(matrix(nrow = 1, ncol = 0))
+#       for (d in 1:(ncot / nc)) {
+#         COtselected_i <- cbind(COtselected_i, COt[i, (j) + (d - 1) * nc])
+#       }
+#       COtselected_i <- do.call(rbind, replicate(k, 
+#         as.data.frame(COtselected_i[1, ]), simplify = FALSE))
+#       # Concatenating CDi and COtselected_i into
+#       # CDi
+#       CDi <- cbind(CDi, COtselected_i)
+#       # Transformation of the names of the columns
+#       # of CDi (called V1, V2, ..., "VtotV")
+#       colnames(CDi) <- paste("V", 1:ncol(CDi), sep = "")
+#     }
+# 
+# 
+#     # Check for missing-values among predictors
+#     # (i.e. we won't impute any value on the current
+#     # MD if there is any NA among the VIs)
+#     if (max(is.na(CDi[1, 2:ncol(CDi)])) == 0) {
+#       # checking that
+#       # there is no NA
+#       # among the current
+#       # VI (otherwise no
+#       # data will be
+#       # imputed for the
+#       # current NA)
+#       ODi <- RegrImpute(ODi, CDi, regr, reglog, noise, i, j, k)
+#     }
+#   }
+#   return(ODi)
+# }
+
+ODiImputePF <- function(CO, ODi, CD, COt, COtsample, REFORD, nr_REFORD, pastDistrib, 
+                        futureDistrib, k, np, nf, nc, ncot, reglog, LOOKUP, regr, noise, 
+                        shift, MaxGap, order)
 {
-  for (u in 1:nr_REFORD) {
-    i <- REFORD[u, 1]
-    # taking out the first coordinate
-    # (row number in ORDER) from REFORD
-    j <- REFORD[u, 2]
-
-    # taking out the second coordinate
-    # (column number in ORDER) from REFORD
-    CDi <- matrix(NA, nrow = k, ncol = 1)
-
-    # Matrix for past values
-    shift <- as.numeric(shift)
-
-    vect <- LOOKUP[i, (j - shift - np):(j - shift - 1)]
-
-    CDpi <- matrix(vect, nrow = k, ncol = length(vect), byrow = TRUE)
-
-    # Matrix for future values
-    vect <- LOOKUP[i, 
-      (j - shift + MaxGap - order + 1):(j - shift + MaxGap - order + nf)]
-    CDfi <- matrix(vect, nrow = k, ncol = length(vect), byrow = TRUE)
-
-    # Matrix for past distribution
-    if (pastDistrib) {
-      dbi <- summary(factor(LOOKUP[i, 1:(j - 1)], 
-        levels = c(1:k), exclude = NULL)) / length(1:(j - 1))
-      CDdbi <- matrix(dbi[1:k], nrow = k, ncol = k, byrow = TRUE)
-    }
-    # Matrix for future distribution
-    if (futureDistrib) {
-      dai <- summary(factor(LOOKUP[i, (j + 1):nc], 
-        levels = c(1:k), exclude = NULL)) / length((j + 1):nc)
-      CDdai <- matrix(dai[1:k], nrow = k, ncol = k, byrow = TRUE)
-    }
-    # Concatenating CDi
-    CDi <- cbind(CDi, CDpi, CDfi)
-
-    if (pastDistrib) {
-      CDi <- cbind(CDi, CDdbi)
-    }
-
-    if (futureDistrib) {
-      CDi <- cbind(CDi, CDdai)
-    }
-
-    CDi <- as.data.frame(CDi)
-   
-    
-    if (regr == "rf") {
-      for (v in 2:(1 + np + nf)) {
-        CDi[, v] <- factor(CDi[, v], levels = c(1:(k + 1)))
-        CDi[, v][is.na(CDi[, v])] <- k + 1
-      }
-      CDi[, 1] <- factor(CDi[, 1], levels = levels(CD[, 1]))
+  
+  CDi <- matrix(NA,nrow=nr_REFORD,ncol=1)
+  
+  if(np>0){
+    CDpi <- matrix(NA, nrow=nr_REFORD, ncol=np)
+  }
+  if(nf>0){
+    CDfi <- matrix(NA, nrow=nr_REFORD, ncol=nf)
+  }
+  
+  if (pastDistrib) {
+    CDdb <- matrix(NA, nrow=nr_REFORD, ncol=k)
+  }
+  
+  if (futureDistrib) {
+    CDda <- matrix(NA, nrow=nr_REFORD, ncol=k)
+  }
+  
+  if (all(is.na(CO)) == FALSE) {
+    if (is.null(dim(CO))) {
+      COi <- as.data.frame(matrix(NA,nrow = nr_REFORD, ncol = 1))
     } else {
-      # multinom
-      CDi[, 1] <- factor(CDi[, 1], levels = c(1:k))
-      for (v in 2:(1 + np + nf)) {
-        CDi[, v] <- factor(CDi[, v], levels = levels(CD[, v]), exclude = NULL)
-      }
-    }
-    
-    
-    if (pastDistrib | futureDistrib) {
-      CDi[, (1 + np + nf + 1):ncol(CDi)] <- lapply(
-        CDi[, (1 + np + nf + 1):ncol(CDi)], as.numeric
-        )
-    }
-
-
-    if (all(is.na(CO)) == FALSE) {
-      # Checking if CO is NOT
-      # completely empty
-      # Creation of the matrix COi used in 3.3
-      if (is.null(dim(CO))) {
-        COi <- do.call(rbind, replicate(k, as.data.frame(CO[i]), 
-          simplify = FALSE))
-      } else {
-        COi <- do.call(rbind, replicate(k, as.data.frame(CO[i, ]), 
-          simplify = FALSE))
-      }
-      # Concatenating CDi and COi into CDi
-      CDi <- cbind(CDi, COi)
-      # Transformation of the names of the columns
-      # of CDi (called V1, V2, ..., "VtotV")
-      colnames(CDi) <- paste("V", 1:ncol(CDi), sep = "")
-    }
-    # Else, in case CO is empty (i.e. we don't
-    # consider any covariate)
-    # simply continue with the current CDi
-
-    # Eventually concatenating CDi with
-    # COtselected_i (the matrix containing the
-    # current time-dependent covariates)
-    # Checking if COt is NOT completely empty
-    if (ncot > 0) {
-      COtselected_i <- as.data.frame(matrix(nrow = 1, ncol = 0))
-      for (d in 1:(ncot / nc)) {
-        COtselected_i <- cbind(COtselected_i, COt[i, (j) + (d - 1) * nc])
-      }
-      COtselected_i <- do.call(rbind, replicate(k, 
-        as.data.frame(COtselected_i[1, ]), simplify = FALSE))
-      # Concatenating CDi and COtselected_i into
-      # CDi
-      CDi <- cbind(CDi, COtselected_i)
-      # Transformation of the names of the columns
-      # of CDi (called V1, V2, ..., "VtotV")
-      colnames(CDi) <- paste("V", 1:ncol(CDi), sep = "")
-    }
-
-
-    # Check for missing-values among predictors
-    # (i.e. we won't impute any value on the current
-    # MD if there is any NA among the VIs)
-    if (max(is.na(CDi[1, 2:ncol(CDi)])) == 0) {
-      # checking that
-      # there is no NA
-      # among the current
-      # VI (otherwise no
-      # data will be
-      # imputed for the
-      # current NA)
-      ODi <- RegrImpute(ODi, CDi, regr, reglog, noise, i, j, k)
+      COi <- as.data.frame(matrix(NA,nrow = nr_REFORD, ncol = ncol(CO)))
     }
   }
+  if (ncot > 0) {
+    COtselected <- do.call(rbind, replicate(nr_REFORD, COtsample, simplify = FALSE))
+  }
+  
+  for (u in 1:nr_REFORD) {
+    i <- REFORD[u, 1]
+    j <- REFORD[u, 2]
+    
+    shift <- as.numeric(shift)
+    
+    if(np>0 & nf>0){
+      CDpi[u, ] <-  LOOKUP[i, (j - shift - np):(j - shift - 1)]
+      
+      CDfi[u, ] <- LOOKUP[i, (j - shift + MaxGap - order + 1):
+                            (j - shift + MaxGap - order + nf)]
+    }else if(nf==0){
+      CDpi[u, ] <- LOOKUP[i, (j - np):(j - 1)]
+    }else{
+      CDfi[u, ] <- LOOKUP[i, (j + 1):(j + nf)]
+    }
+    
+    if (pastDistrib) {
+      CDdb[u, ] <- compute.distrib(LOOKUP[i, ,drop=FALSE], 
+                                   nc, k, j, type="past")
+    }
+    
+    if (futureDistrib) {
+      CDda[u, ] <- compute.distrib(LOOKUP[i, ,drop=FALSE], 
+                                   nc, k, j, type="future")
+    }
+    
+    if (all(is.na(CO)) == FALSE) {
+      if(u==1){
+        if (is.null(dim(CO))) {
+          COi <- CO[i,]
+        } else {
+          COi <- CO[i,,drop=FALSE]
+        }
+      }else{
+        if (is.null(dim(CO))) {
+          COi <- c(COi, CO[i,])
+        } else {
+          COi <- rbind(COi,CO[i,,drop=FALSE])
+        }
+      }
+    }
+    if (ncot > 0) {
+      #COtselected <- COtselection(COtselected, COt, ncot, i, i, 1, nc, j, 
+      #shifted = 0)
+      COttemp <- as.data.frame(matrix(nrow = 1, ncol = 0))
+      for (d in 1:(ncot / nc)) {
+        COttemp <- cbind(COttemp, COt[i, j + (d - 1) * nc],row.names=NULL)
+      }
+      COtselected[u, ] <- COttemp
+    }
+  }
+  
+  if(np>0&nf>0){
+    CDi <- cbind(CDi, CDpi, CDfi)
+  }else if(np==0){
+    CDi <- cbind(CDi, CDfi)
+  }else{
+    CDi <- cbind(CDi, CDpi)
+  }
+  if (pastDistrib) {
+    CDi <- cbind(CDi, CDdb)
+  }
+  
+  if (futureDistrib) {
+    CDi <- cbind(CDi, CDda)
+  }
+  
+  CDi <- as.data.frame(CDi)
+  
+  if (all(is.na(CO)) == FALSE) {
+    CDi <- cbind(CDi, COi)
+  }
+  
+  if (ncot > 0) {
+    CDi <- cbind(CDi, COtselected, row.names=NULL)
+  }
+  
+  colnames(CDi) <- paste("V", 1:ncol(CDi), sep = "")
+  if (regr == "rf") {
+    for (v in 2:(1 + np + nf)) {
+      CDi[, v] <- factor(CDi[, v], levels = c(1:(k + 1)))
+      CDi[, v][is.na(CDi[, v])] <- k + 1
+    }
+    CDi[, 1] <- factor(CDi[, 1], levels = levels(CD[, 1]))
+  }else {
+    # multinom
+    CDi[, 1] <- factor(CDi[, 1], levels = c(1:k))
+    for (v in 2:(1 + np + nf)) {
+      CDi[, v] <- factor(CDi[, v], levels = levels(CD[, v]), exclude = NULL)
+    }
+  }
+  
+  if(regr=="multinom"){
+    pred <- predict(reglog, CDi, type = "probs")
+    names_saved <- reglog$lev
+    if(nr_REFORD==1){
+      pred <- matrix(pred, nrow=1)
+    }
+    
+    if(length(reglog$lev)>2){
+      for(u in 1:nr_REFORD){
+        
+        i <- REFORD[u, 1]
+        j <- REFORD[u, 2]
+        
+        alea <- runif(1)
+        post <- cumsum(pred[u,])
+        
+        sel <- as.numeric(names_saved[which(post >= alea)])
+        
+        ODi[i,j] <- sel[1]
+      }
+    }else{
+      for(u in 1:nr_REFORD){
+        i <- REFORD[u, 1]
+        j <- REFORD[u, 2]
+        
+        alea <- runif(1)
+        if (alea > pred[u]) {
+          sel <- as.numeric(reglog$lev[1])
+        } else {
+          sel <- as.numeric(reglog$lev[2])
+        }
+        ODi[i, j] <- sel
+      }
+    }
+  }else{
+    for(u in 1:nr_REFORD){
+      i <- REFORD[u, 1]
+      j <- REFORD[u, 2]
+      
+      ODi <- RegrImpute(ODi, CDi[u,], regr, reglog, noise, i, j, k)
+      
+    }
+    
+  }
   return(ODi)
+}
+
+
+compute.distrib <- function(data, nc , k, col, type){
+  if(type=="future"){
+    col.keep <- (col+1):nc
+  }else{
+    col.keep <- 1:(col-1)
+  }
+  
+  datat <- as.data.frame(t(data))
+  tempdata <- lapply(datat[col.keep, ,drop=FALSE], factor, levels = c(1:k, NA),
+                     exclude = NULL)
+  
+  distrib <- (do.call(rbind, lapply(tempdata, summary))/length(col.keep))[,1:k]
+  
+  return(distrib)
 }
 
 

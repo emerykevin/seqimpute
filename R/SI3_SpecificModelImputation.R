@@ -1,9 +1,3 @@
-# 3. Imputation using a specific model -----------------------------------------
-
-
-################################################################################
-# Impute data using a specific model
-
 ModelImputation <- function(OD, covariates, time.covariates, ODi, MaxGap, 
   regr, nc, np, nf, nr, ncot, COtsample, pastDistrib, futureDistrib, k, 
   available, REFORD_L, noise, verbose, ...)
@@ -30,10 +24,15 @@ ModelImputation <- function(OD, covariates, time.covariates, ODi, MaxGap,
       log_CD[c("reglog", "CD")] <- ComputeModel(CD_shift$CD, regr, np, 
                                                 nf, k, ...)
       # 3.3. Imputation using the just created model 
+      # ODi <- CreatedModelImputation(order, covariates, log_CD$CD, 
+      #   time.covariates, OD, ODi, pastDistrib, futureDistrib, available, 
+      #   REFORD_L, ncot, nc, np, nf, k, regr, log_CD$reglog, noise, 
+      #   CD_shift$shift, MaxGap)
+      
       ODi <- CreatedModelImputation(order, covariates, log_CD$CD, 
-        time.covariates, OD, ODi, pastDistrib, futureDistrib, available, 
-        REFORD_L, ncot, nc, np, nf, k, regr, log_CD$reglog, noise, 
-        CD_shift$shift, MaxGap)
+                                    time.covariates, COtsample, OD, ODi, pastDistrib, futureDistrib, available, 
+                                    REFORD_L, ncot, nc, np, nf, k, regr, log_CD$reglog, noise, 
+                                    CD_shift$shift, MaxGap)
     }else{
       lev <- names(table(CD_shift$CD[, 1]))
       REFORD <- as.matrix(REFORD_L[[order]])
@@ -141,11 +140,48 @@ CDCompute <- function(CO, OD, COt, MaxGap, order, np, nc, nr, nf, COtsample,
 ################################################################################
 # Imputation using the just created model 
 
-CreatedModelImputation <- function(order, CO, CD, COt, OD, ODi, pastDistrib, 
-  futureDistrib, available, REFORD_L, ncot, nc, np, nf, k, regr, reglog, 
-  noise, shift, MaxGap)
+# CreatedModelImputation <- function(order, CO, CD, COt, OD, ODi, pastDistrib, 
+#   futureDistrib, available, REFORD_L, ncot, nc, np, nf, k, regr, reglog, 
+#   noise, shift, MaxGap)
+# {
+#   
+#   if (available == TRUE) { # we take the previously imputed
+#     # data into account
+#     LOOKUP <- ODi
+#   } else { # that is available == FALSE and thus we
+#     # don't take the previously imputed
+#     # data into account
+#     LOOKUP <- OD
+#   }
+# 
+# 
+#   REFORD <- as.matrix(REFORD_L[[order]])
+#   if (ncol(REFORD) == 1) {
+#     REFORD <- t(REFORD)
+#   }
+#   nr_REFORD <- nrow(REFORD)
+#   if (np > 0 & nf == 0) { # only PAST VIs do exist
+#     ODi <- ODiImputePAST(CO, ODi, CD, COt, REFORD, nr_REFORD, pastDistrib, 
+#       futureDistrib, k, np, nf, nc, ncot, reglog, LOOKUP, regr, noise)
+# 
+#     #-------------------------------------------------------------------------
+#   } else if (np == 0 & nf > 0) { # only FUTURE VIs do exist
+#     ODi <- ODiImputeFUTURE(CO, ODi, CD, COt, REFORD, nr_REFORD, pastDistrib, 
+#       futureDistrib, k, np, nf, nc, ncot, reglog, LOOKUP, regr, noise)
+#   } else { # meaning np>0 and nf>0 and that,
+#     # thus, PAST as well as FUTURE VIs
+#     # do exist
+#     ODi <- ODiImputePF(CO, ODi, CD, COt, REFORD, nr_REFORD, pastDistrib, 
+#       futureDistrib, k, np, nf, nc, ncot, reglog, LOOKUP, regr, noise, 
+#       shift, MaxGap, order)
+#   }
+#   return(ODi)
+# }
+
+CreatedModelImputation <- function(order, CO, CD, COt, COtsample, OD, ODi, pastDistrib, 
+                                   futureDistrib, available, REFORD_L, ncot, nc, np, nf, k, regr, reglog, 
+                                   noise, shift, MaxGap)
 {
-  
   if (available == TRUE) { # we take the previously imputed
     # data into account
     LOOKUP <- ODi
@@ -154,32 +190,19 @@ CreatedModelImputation <- function(order, CO, CD, COt, OD, ODi, pastDistrib,
     # data into account
     LOOKUP <- OD
   }
-
-
+  
   REFORD <- as.matrix(REFORD_L[[order]])
   if (ncol(REFORD) == 1) {
     REFORD <- t(REFORD)
   }
   nr_REFORD <- nrow(REFORD)
-  if (np > 0 & nf == 0) { # only PAST VIs do exist
-    ODi <- ODiImputePAST(CO, ODi, CD, COt, REFORD, nr_REFORD, pastDistrib, 
-      futureDistrib, k, np, nf, nc, ncot, reglog, LOOKUP, regr, noise)
-
-    #-------------------------------------------------------------------------
-  } else if (np == 0 & nf > 0) { # only FUTURE VIs do exist
-    ODi <- ODiImputeFUTURE(CO, ODi, CD, COt, REFORD, nr_REFORD, pastDistrib, 
-      futureDistrib, k, np, nf, nc, ncot, reglog, LOOKUP, regr, noise)
-  } else { # meaning np>0 and nf>0 and that,
-    # thus, PAST as well as FUTURE VIs
-    # do exist
-    ODi <- ODiImputePF(CO, ODi, CD, COt, REFORD, nr_REFORD, pastDistrib, 
-      futureDistrib, k, np, nf, nc, ncot, reglog, LOOKUP, regr, noise, 
-      shift, MaxGap, order)
-  }
+  
+  ODi <- ODiImputePF(CO, ODi, CD, COt, COtsample, REFORD, nr_REFORD, pastDistrib, 
+                     futureDistrib, k, np, nf, nc, ncot, reglog, LOOKUP, regr, noise, 
+                     shift, MaxGap, order)
+  
   return(ODi)
 }
-
-
 
 ################################################################################
 # Imputation where only FUTURE VIs exist
