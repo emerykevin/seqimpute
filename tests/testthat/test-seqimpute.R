@@ -630,6 +630,117 @@ test_that("MICT-timing with one time-varying covariate", {
 })
 
 
+
+# 9. covariates + time-varying covariates ####
+## a. past and future ####
+set.seed(1)
+cov <- matrix(rnorm(nrow(gameadd)*4),nrow(gameadd),4)
+gameadd.cov <- cbind(gameadd,cov)
+  
+test_that("MICT with covariates and time-varying covariates", {
+  skip_on_cran()
+  expect_no_error(seqimpute(gameadd.cov, var=1:4, m=2, covariates=c("Gender","Age"),
+                            time.covariates = 8:15))
+})
+
+test_that("MICT with one covariate", {
+  skip_on_cran()
+  expect_no_error(seqimpute(gameadd.cov, var=1:4, m=2, covariates=c("Gender")))
+})
+
+test_that("MICT with covariates and time-varying covariates", {
+  skip_on_cran()
+  expect_no_error(seqimpute(gameadd.cov, var=1:4, m=2, 
+                            time.covariates = 8:15))
+})
+
+test_that("MICT-timing with covariates and time-varying covariates", {
+  skip_on_cran()
+  expect_no_error(seqimpute(gameadd.cov, var=1:4, m=2, covariates=c("Gender","Age"),
+                            time.covariates = 8:15, timing=TRUE))
+})
+
+test_that("MICT-timing with one covariate", {
+  skip_on_cran()
+  expect_no_error(seqimpute(gameadd.cov, var=1:4, m=2, covariates=c("Gender"), timing=T))
+})
+
+test_that("MICT-timing with one time-varying covariate", {
+  skip_on_cran()
+  expect_no_error(seqimpute(gameadd.cov, var=1:4, m=2, 
+                            time.covariates = 8:15, timing=T))
+})
+
+## b. only past ####
+test_that("MICT with covariates and time-varying covariates", {
+  skip_on_cran()
+  expect_no_error(seqimpute(gameadd.cov, var=1:4, m=2, covariates=c("Gender","Age"),
+                            time.covariates = 8:15, nf=0))
+})
+
+test_that("MICT with one covariate", {
+  skip_on_cran()
+  expect_no_error(seqimpute(gameadd.cov, var=1:4, m=2, covariates=c("Gender"),nf=0))
+})
+
+test_that("MICT with covariates and time-varying covariates", {
+  skip_on_cran()
+  expect_no_error(seqimpute(gameadd.cov, var=1:4, m=2, 
+                            time.covariates = 8:15, nf=0))
+})
+
+test_that("MICT-timing with covariates and time-varying covariates", {
+  skip_on_cran()
+  expect_no_error(seqimpute(gameadd.cov, var=1:4, m=2, covariates=c("Gender","Age"),
+                            time.covariates = 8:15, timing=TRUE, nf=0))
+})
+
+test_that("MICT-timing with one covariate", {
+  skip_on_cran()
+  expect_no_error(seqimpute(gameadd.cov, var=1:4, m=2, covariates=c("Gender"), timing=T, nf=0))
+})
+
+test_that("MICT-timing with one time-varying covariate", {
+  skip_on_cran()
+  expect_no_error(seqimpute(gameadd.cov, var=1:4, m=2, 
+                            time.covariates = 8:15, timing=T, nf=0))
+})
+
+## b. only future ####
+test_that("MICT with covariates and time-varying covariates", {
+  skip_on_cran()
+  expect_no_error(seqimpute(gameadd.cov, var=1:4, m=2, covariates=c("Gender","Age"),
+                            time.covariates = 8:15, np=0))
+})
+
+test_that("MICT with one covariate", {
+  skip_on_cran()
+  expect_no_error(seqimpute(gameadd.cov, var=1:4, m=2, covariates=c("Gender"),np=0))
+})
+
+test_that("MICT with covariates and time-varying covariates", {
+  skip_on_cran()
+  expect_no_error(seqimpute(gameadd.cov, var=1:4, m=2, 
+                            time.covariates = 8:15, np=0))
+})
+
+test_that("MICT-timing with covariates and time-varying covariates", {
+  skip_on_cran()
+  expect_no_error(seqimpute(gameadd.cov, var=1:4, m=2, covariates=c("Gender","Age"),
+                            time.covariates = 8:15, timing=TRUE, np=0))
+})
+
+test_that("MICT-timing with one covariate", {
+  skip_on_cran()
+  expect_no_error(seqimpute(gameadd.cov, var=1:4, m=2, covariates=c("Gender"), timing=T, np=0))
+})
+
+test_that("MICT-timing with one time-varying covariate", {
+  skip_on_cran()
+  expect_no_error(seqimpute(gameadd.cov, var=1:4, m=2, 
+                            time.covariates = 8:15, timing=T, np=0))
+})
+
 # 10. rows with only NA ####
 ## A. multiple imputation #####
 gameadd.row.NA.1 <- gameadd.traj

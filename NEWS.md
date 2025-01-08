@@ -1,3 +1,34 @@
+# seqimpute 2.2.0
+
+## New features
+* seqaddNA()` now has a `pcont` argument, which allows to modify the probability 
+that a gap with missing data will be continued.
+
+## Minor improvments and fixes
+
+* Bug regarding the frame.radius parameter that was always set as frame.radius=0,
+whathever the user provided corrected.
+
+# Bug regarding edge case with only one level in the dependent variable.
+
+* For parallel computing, the maximum number of cores is set as
+availableCores()-1, instead as detectCores()-1.
+
+* Warnings now appear when the number of specified cores exceeds
+the number of multiple imputations, or the number of availableCores()-1.
+
+* Explanations of `seqaddNA()` have been deepened.
+
+* Explanations of `seqimpute()` regarding the slots of the seqimp object that 
+is returned have been depened.
+
+* The colours for the `seqmissIplot()` and `seqmissfplot` plots have been 
+changed to improve readability.
+
+* Each variable of the imputed object now have the same levels.
+
+* The quality and speed of the code were increased.
+
 # seqimpute 2.1.0
 
 ## New features

@@ -81,23 +81,23 @@ seqTrans <- function(data, var = NULL, trans) {
   impTrans <- trans
   nr <- nrow(data)
   nc <- ncol(data)
-
-
- 
+  
+  
+  
   dataClass <- class(data[1, 1])
   if ((dataClass != "factor") & (dataClass != "character") 
       & (dataClass != "numeric")) {
     stop("/!\\ The class of the variables contained in your original dataset
          should be either 'factor', 'character', or 'numeric'")
   }
-
-
+  
+  
   if (dataClass == "factor"|dataClass=="character") {
     k <- length(sort(unique(as.vector(as.matrix(data)))))
   } else {
     k <- max(data)
   }
-
+  
   # rows with NA
   i <- 1
   numbOfNAFilledLines <- 0
@@ -110,8 +110,8 @@ seqTrans <- function(data, var = NULL, trans) {
   }
   # Updating the number of rows in data
   nr <- nrow(data)
-
-
+  
+  
   for (i in 1:length(impTrans)) {
     if (!str_detect(impTrans[i], "->")) {
       stop("/!\\ Warning, you should construct your transition(s) vector trans 
@@ -123,20 +123,20 @@ seqTrans <- function(data, var = NULL, trans) {
     firstState <- substr(impTrans[i], 1, locDash - 1)
     locSpike <- str_locate(impTrans[i], ">")
     secondState <- substr(impTrans[i], locSpike + 1, nchar(impTrans[1]))
- 
+    
   }
-
-
-
-
-
-
-
-
-
+  
+  
+  
+  
+  
+  
+  
+  
+  
   # 3. Spotting impossible transitions ----------------------------
-
-
+  
+  
   ## Setup
   #
   # Transforming every line of data into class character and adding a dash 
@@ -146,12 +146,12 @@ seqTrans <- function(data, var = NULL, trans) {
     mytestChar <- paste(as.vector(rbind(data, dashes)), collapse = "")
   }
   dataCharAndDashes <- apply(data, 1, CharAndDashes)
-
-
-
-
-
-
+  
+  
+  
+  
+  
+  
   # 3.1 Number of listed impossible transitions -------------------------------
   # Identifying the patterns of the impossible transitions in each line of data
   countImpTrans <- function(dataCharAndDashes) {
@@ -167,21 +167,21 @@ seqTrans <- function(data, var = NULL, trans) {
   # have been found
   if (sum(numbOfImpTrans) == 0) {
     message("Your dataset has no impossible transitions!")
-
+    
     seqTransList <- matrix(0, 0, 2)
     colnames(seqTransList) <- c("row", "col")
-
+    
     return(seqTransList)
   }
-
+  
   if (length(impTrans) == 1) {
     numbOfImpTransByRow <- t(as.matrix(numbOfImpTransByRow))
   }
-
-
-
-
-
+  
+  
+  
+  
+  
   # we will have "3 14" in place i,j
   startLocMat <- matrix(NA, nrow = length(impTrans), ncol = nrow(data))
   for (i in 1:length(impTrans)) {
@@ -200,9 +200,9 @@ seqTrans <- function(data, var = NULL, trans) {
       }
     }
   }
-
-
-
+  
+  
+  
   # Function to extract the different digits when a string is composed
   # of multiple digits
   Numextract <- function(string) {
@@ -223,7 +223,7 @@ seqTrans <- function(data, var = NULL, trans) {
   }
   list_rows <- list()
   list_cols <- list()
-
+  
   for (i in 1:length(impTrans)) {
     if (numbOfImpTrans[i] > 0) {
       TmpRows <- c()
@@ -234,8 +234,8 @@ seqTrans <- function(data, var = NULL, trans) {
           if (detectTemp == FALSE) {
             TmpRows <- c(TmpRows, j)
             TmpCols <- c(TmpCols, 
-              GetRealColPosition(dataCharAndDashes = dataCharAndDashes, 
-              RowPos = j, ColPos = as.numeric(startLocMat[i, j])))
+                         GetRealColPosition(dataCharAndDashes = dataCharAndDashes, 
+                                            RowPos = j, ColPos = as.numeric(startLocMat[i, j])))
           } else {
             hiddenCol <- str_count(startLocMat[i, j], " ")
             TmpRows <- c(TmpRows, rep(j, hiddenCol + 1))
@@ -254,10 +254,10 @@ seqTrans <- function(data, var = NULL, trans) {
       list_cols[[i]] <- TmpCols
     }
   }
-
-
+  
+  
   MaxNumTransitions <- max(sapply(list_cols, function(x) length(x)))
-
+  
   rowMat <- matrix(NA, length(impTrans), MaxNumTransitions)
   colMat <- matrix(NA, length(impTrans), MaxNumTransitions)
   #
@@ -281,28 +281,28 @@ seqTrans <- function(data, var = NULL, trans) {
       colMat[i, 1:length(list_cols[[i]])] <- list_cols[[i]]
     }
   }
-
+  
   if (length(impTrans) > 1) {
     rowMat <- rowMat[rowSums(!is.na(rowMat)) > 0, ]
     colMat <- colMat[rowSums(!is.na(colMat)) > 0, ]
   }
-
-
-
+  
+  
+  
   # 3.3 Summary data frame --------------------------------------------------
   #
   # Update of impTrans with an arrow
   impTransOverview <- data.frame(c(impTrans, "", "Total:"), 
-    c(numbOfImpTrans, "", sum(numbOfImpTrans)))
+                                 c(numbOfImpTrans, "", sum(numbOfImpTrans)))
   colnames(impTransOverview) <- c("Transitions", "Occurence")
-
+  
   if (length(rowMat) > 0) {
     seqTransList <- matrix(0, length(rowMat), 2)
     seqTransList[, 1] <- rowMat
     seqTransList[, 2] <- colMat
   }
   colnames(seqTransList) <- c("row", "col")
-
-
+  
+  
   return(seqTransList)
 }

@@ -41,7 +41,7 @@
 #' considers all similar patterns regardless of their temporal placement, 
 #' MICT-timing restricts pattern selection to those that are temporally 
 #' closest to the missing value. This refinement ensures that the 
-#' imputation process adequately accounts for temporal dynamics, resulting 
+#' imputation process adequately accounts for temporal dynamics, imping 
 #' in more accurate imputed values.
 #'
 #'
@@ -163,22 +163,26 @@
 #'   time.covariates = 8:11, ParExec = TRUE, ncores=5, SetRNGSeed = 2)
 #' }
 #'
-#' @references HALPIN, Brendan (2012). Multiple imputation for life-course 
+#' @references Halpin, B. (2012). Multiple imputation for life-course 
 #' sequence data. Working Paper WP2012-01, Department of Sociology, 
 #' University of Limerick. http://hdl.handle.net/10344/3639.
-#' @references HALPIN, Brendan (2013). Imputing sequence data: Extensions to 
+#' @references Halpin, B. (2013). Imputing sequence data: Extensions to 
 #' initial and terminal gaps, Stata's. Working Paper WP2013-01, 
 #' Department of Sociology, 
 #' University of Limerick. http://hdl.handle.net/10344/3620
-#'
+#' @references Emery, K., Studer, M., & Berchtold, A. (2024). Comparison of 
+#' imputation methods for univariate categorical longitudinal data. 
+#' Quality & Quantity, 1-25. 
+#' https://link.springer.com/article/10.1007/s11135-024-02028-z
 #'
 #' @export
 seqimpute <- function(data, var = NULL, np = 1, nf = 1, m = 5, timing = FALSE, 
                       frame.radius = 0, covariates = NULL, 
-                      time.covariates = NULL, regr = "multinom",
-                      npt = 1, nfi = 1, ParExec = FALSE, ncores = NULL, 
-                      SetRNGSeed = FALSE, end.impute = TRUE, verbose = TRUE, available = TRUE, 
-                      pastDistrib = FALSE, futureDistrib = FALSE,...)
+                      time.covariates = NULL, regr = "multinom",npt = 1, 
+                      nfi = 1, ParExec = FALSE, ncores = NULL, 
+                      SetRNGSeed = FALSE, end.impute = TRUE, verbose = TRUE,
+                      available = TRUE, pastDistrib = FALSE, 
+                      futureDistrib = FALSE,...)
 {
   
   call <- match.call()
@@ -194,9 +198,7 @@ seqimpute <- function(data, var = NULL, np = 1, nf = 1, m = 5, timing = FALSE,
     
     data <- dataxtract(data, var)
   }
-  
-  dataOD <- preliminaryChecks(data, covariates, time.covariates,var=var)
-  
+  dataOD <- check.data(data, covariates, time.covariates, var)
   if (sum(is.na(dataOD$OD)) == 0) {
     if (verbose == TRUE) {
       message("This dataset has no missing values!")
@@ -212,7 +214,7 @@ seqimpute <- function(data, var = NULL, np = 1, nf = 1, m = 5, timing = FALSE,
   
   regr <- check.regr(regr)
   
-  imporder <- OrderCreation(dataOD$OD, dataOD$nr, dataOD$nc, np, nf, npt, nfi, 
+  imporder <- compute.order(dataOD$OD, dataOD$nr, dataOD$nc, np, nf, npt, nfi, 
                             end.impute)
   
   if(ParExec){
@@ -228,12 +230,10 @@ seqimpute <- function(data, var = NULL, np = 1, nf = 1, m = 5, timing = FALSE,
     if (SetRNGSeed) {
       doRNG::registerDoRNG(SetRNGSeed)
     }
-    # set progress bar for parallel processing
     pb <- txtProgressBar(max = m, style = 3)
     progress <- function(n) setTxtProgressBar(pb, n)
     opts <- list(progress = progress)
     
-    # condition used to run code part needed for parallel processing
     ParParams <- TRUE
   }else{
     if (SetRNGSeed) {
@@ -243,13 +243,11 @@ seqimpute <- function(data, var = NULL, np = 1, nf = 1, m = 5, timing = FALSE,
     foreach::registerDoSEQ()
     opts <- NULL
     
-    # condition used to run code part needed for sequential processing
     ParParams <- FALSE
   }
   
-  # Beginning of the multiple imputation (imputing "mi" times)
   o <- NULL
-  RESULT <- foreach(o = 1:m, .inorder = TRUE, 
+  imp <- foreach(o = 1:m, .inorder = TRUE, 
                     .options.snow = opts) %dopar% {
                       
                       if (!ParParams) {
@@ -260,36 +258,35 @@ seqimpute <- function(data, var = NULL, np = 1, nf = 1, m = 5, timing = FALSE,
                       
                       
                       if (timing == FALSE) {
-                        RESULT <- seqimpute_standard(dataOD, imporder=imporder,
-                                                     np = np, nf = nf, m = m, covariates = covariates,
-                                                     time.covariates = time.covariates, regr = regr, nfi = nfi, npt = npt,
-                                                     available = available, pastDistrib = pastDistrib,
-                                                     futureDistrib = futureDistrib,
-                                                     verbose = verbose, ...)
+                        imp <- mict(dataOD, imporder = imporder,
+                                      np = np, nf = nf, m = m, regr = regr, 
+                                      nfi = nfi, npt = npt,
+                                      available = available, 
+                                      pastDistrib = pastDistrib,
+                                      futureDistrib = futureDistrib,
+                                      verbose = verbose,...)
                       }else {
-                        RESULT <- seqimpute_timing(dataOD, imporder=imporder,
-                                                   np = np, nf = nf, m = m, covariates = covariates,
-                                                   time.covariates = time.covariates, regr = regr, nfi = nfi, npt = npt,
-                                                   available = available, pastDistrib = pastDistrib,
-                                                   futureDistrib = futureDistrib,
-                                                   verbose = verbose, frame.radius=frame.radius,...)
+                        imp <- mict.timing(dataOD, imporder = imporder,
+                                          np = np, nf = nf, m = m, regr = regr, 
+                                          nfi = nfi, npt = npt,
+                                          available = available, 
+                                          pastDistrib = pastDistrib,
+                                          futureDistrib = futureDistrib,
+                                          verbose = verbose, 
+                                          frame.radius=frame.radius,...)
                       }
-                      
-                      
-                      
-                      
                     }
   if (ParParams) {
     parallel::stopCluster(cl)
   }
-  names(RESULT) <- paste0("imp",1:m)
+  names(imp) <- paste0("imp",1:m)
   
-  
-  RESULT <- lapply(RESULT,FinalResultConvert, ODClass = dataOD$ODClass,
-                   ODlevels = dataOD$ODlevels, 
-                   rownamesDataset = rownames(dataOD$OD), 
-                   nrowsDataset = nrow(dataOD$OD), nr = dataOD$nr, nc = dataOD$nc, 
-                   rowsNA = dataOD$rowsNA, mi = m)
+ 
+  imp <- lapply(imp, final.transform, ODClass = dataOD$ODClass,
+                  ODlevels = dataOD$ODlevels, 
+                  rownamesDataset = rownames(dataOD$OD), 
+                  nrowsDataset = nrow(dataOD$OD), nr = dataOD$nr, 
+                  nc = dataOD$nc, rowsNA = dataOD$rowsNA, mi = m)
   
   if(timing==TRUE){
     method <- "MICT-timing"
@@ -297,7 +294,7 @@ seqimpute <- function(data, var = NULL, np = 1, nf = 1, m = 5, timing = FALSE,
     method <- "MICT"
     
   }
-  seqimpobj <- list(data = data, imp = RESULT, m = m, method = method, 
+  seqimpobj <- list(data = data, imp = imp, m = m, method = method, 
                     np = np, nf = nf, regr = regr, call = call)
   
   oldClass(seqimpobj) <- "seqimp"
@@ -307,132 +304,96 @@ seqimpute <- function(data, var = NULL, np = 1, nf = 1, m = 5, timing = FALSE,
 }
 
 
-seqimpute_standard <- function(dataOD, imporder=NULL,
-  covariates = matrix(NA, nrow = 1, ncol = 1), 
-  time.covariates = matrix(NA, nrow = 1, ncol = 1), np = 1, nf = 1, m = 1, 
+mict <- function(dataOD, imporder=NULL, np = 1, nf = 1, m = 1, 
   regr = "multinom", nfi = 1, npt = 1, available = TRUE, pastDistrib = FALSE,
   futureDistrib = FALSE, verbose = TRUE, ...)
 {
-
-  #dataOD <- preliminaryChecks(data, covariates, time.covariates,var=var)
-
+  imp <- dataOD$ODi
   noise <- 0
-
-  tmp <- check.predictors(np, nf, nfi, npt)
-  np <- tmp$np
-  nf <- tmp$nf
-  nfi <- tmp$nfi
-  npt <- tmp$npt
-  
-  regr <- check.regr(regr)
-  dataOD$ncot <- check.ncot(dataOD$ncot,dataOD$nc)
     
-    if (max(imporder$ORDER) != 0) {
+    if (imporder$maxInternal != 0) {
       
       if (verbose == TRUE) {
         print("Imputation of the internal gaps...")
       }
-      dataOD[["ODi"]] <- ModelImputation(OD = dataOD$OD, 
-          covariates = dataOD$CO, time.covariates = dataOD$COt, 
-          ODi = dataOD$ODi, MaxGap = imporder$MaxGap, regr = regr, nc = dataOD$nc, 
-          np = np, nf = nf, 
-          nr = dataOD$nr, ncot = dataOD$ncot, COtsample = dataOD$COtsample, 
-          pastDistrib = pastDistrib, 
-          futureDistrib = futureDistrib, k = dataOD$k, 
-          available = available, REFORD_L = imporder$REFORD_L, 
-          noise = dataOD$noise, verbose,...)
+      
+
+     imp <- mict.internal(data=dataOD, imp, MaxGap = imporder$maxInternal, 
+                            regr = regr, nc = dataOD$nc, np = np, nf = nf, 
+                            nr = dataOD$nr, ncot = dataOD$ncot,
+                            pastDistrib = pastDistrib, 
+                            futureDistrib = futureDistrib, k = dataOD$k, 
+                            available = available, 
+                            REFORD_L = imporder$REFORD_L, noise = dataOD$noise, 
+                            verbose=verbose,...)
     }
-    if (imporder$MaxInitGapSize != 0){ 
+    if (imporder$maxInitial != 0){ 
       if (verbose == TRUE) {
         print("Imputation of the initial gaps...")
       }
       # # we only impute the initial gaps if nfi > 0
-      dataOD[["ODi"]] <- ImputingInitialNAs(OD = dataOD$OD, 
-          covariates = dataOD$CO, time.covariates = dataOD$COt, 
-          ODi = dataOD$ODi, COtsample = dataOD$COtsample,
-          futureDistrib = futureDistrib, 
-          InitGapSize = imporder$InitGapSize, 
-          MaxInitGapSize = imporder$MaxInitGapSize, nr = dataOD$nr, 
+     imp <- mict.initial(dataOD, imp, futureDistrib = futureDistrib, 
+          REFORDI_L = imporder$initial, 
+          MaxInitGapSize = imporder$maxInitial, nr = dataOD$nr, 
           nc = dataOD$nc, ud = dataOD$ud, nco = dataOD$nco, 
           ncot = dataOD$ncot, nfi = nfi, regr = regr, k = dataOD$k, 
           available = available, noise = dataOD$noise, ...)
     }
-    if (imporder$MaxTermGapSize != 0) {
+    if (imporder$maxTerminal != 0) {
       # we only impute the terminal
       # gaps if npt > 0
       if (verbose == TRUE) {
         print("Imputation of the terminal gaps...")
       }
-      dataOD[["ODi"]] <- ImputingTerminalNAs(OD = dataOD$OD, 
-          covariates = dataOD$CO, time.covariates = dataOD$COt, 
-          ODi = dataOD$ODi, COtsample = dataOD$COtsample, 
-          MaxTermGapSize = imporder$MaxTermGapSize, 
-          TermGapSize = imporder$TermGapSize, pastDistrib = pastDistrib, 
+     imp <- mict.terminal(dataOD, imp, MaxTermGapSize = imporder$maxTerminal, 
+          REFORDT_L = imporder$terminal, pastDistrib = pastDistrib, 
           regr = regr, npt = npt, nco = dataOD$nco, ncot = dataOD$ncot, 
           nr = dataOD$nr, nc = dataOD$nc, ud = dataOD$ud, 
           available = available, k = dataOD$k, noise = dataOD$noise, ...)
     }
       # Checking if we have to impute
       # left-hand side SLG
-    if (max(imporder$ORDERSLGLeft) != 0) { 
-      if (verbose == TRUE) {
+  if (max(imporder$maxLeftSLG)>0) {
+    if (verbose == TRUE) {
         print("Imputation of the left-hand side SLG...")
       }
-      dataOD[["ODi"]] <- LSLGNAsImpute(OD = dataOD$OD, ODi = dataOD$ODi, 
-          covariates = dataOD$CO, time.covariates = dataOD$COt, 
-          COtsample = dataOD$COtsample,
-          pastDistrib = pastDistrib, 
+     imp <- mict.leftSLG(dataOD, imp, pastDistrib = pastDistrib, 
           futureDistrib = futureDistrib, regr = regr, np = np, 
           nr = dataOD$nr, nf = nf, nc = dataOD$nc, 
           ud = dataOD$ud, ncot = dataOD$ncot,nco = dataOD$nco, k = dataOD$k, 
           noise = dataOD$noise, available = available, REFORD_L = imporder$REFORDSLGLeft,
-          MaxGap=imporder$MaxSLGLeftGapSize,...)
+          MaxGap=imporder$maxLeftSLG,...)
     }
     # right-hand side SLG
-    if (max(imporder$ORDERSLGRight) != 0) {
-      # Checking if we have to impute right-hand
-      # side SLG
-      if (verbose == TRUE) {
+  if (max(imporder$maxRightSLG)>0) {
+    if (verbose == TRUE) {
         print("Imputation of the right-hand side SLG...")
       }
-      dataOD[["ODi"]] <- RSLGNAsImpute(OD = dataOD$OD, ODi = dataOD$ODi, 
-          covariates = dataOD$CO, time.covariates = dataOD$COt, 
-          COtsample = dataOD$COtsample, 
-          pastDistrib = pastDistrib, 
+     imp <- mict.rightSLG(dataOD, imp, pastDistrib = pastDistrib, 
           futureDistrib = futureDistrib, regr = regr, np = np, 
           nr = dataOD$nr, nf = nf, nc = dataOD$nc, 
           ud = dataOD$ud, ncot = dataOD$ncot,nco = dataOD$nco, k = dataOD$k, 
           noise = dataOD$noise, available = available, REFORD_L = imporder$REFORDSLGRight,
-          MaxGap=imporder$MaxSLGRightGapSize,...)
+          MaxGap=imporder$maxRightSLG,...)
     }
-    # Checking if we have to impute
-    # Both-hand side SLG
-    if (imporder$LongGap){
-      if (verbose == TRUE) {
+  if (max(imporder$maxBothSLG)>0) {
+    if (verbose == TRUE) {
         print("Imputation of the both-hand side SLG...")
       }
       for (h in 2:np) {
         if (sum(imporder$ORDERSLGBoth[, h - 1] == 0 & 
                 imporder$ORDERSLGBoth[, h] != 0) > 0) {
-          # tt <- which(imporder$ORDERSLGBoth[, h - 1] == 0 & 
-          #               imporder$ORDERSLGBoth[, h] != 0)
-          # tmpORDER <- matrix(0, nrow(imporder$ORDERSLGBoth),
-          #   ncol(imporder$ORDERSLGBoth))
-          # tmpORDER[tt, h:ncol(imporder$ORDERSLGBoth)] <- imporder$ORDERSLGBoth[tt, 
-          #     h:ncol(imporder$ORDERSLGBoth)]
-          dataOD[["ODi"]] <- RSLGNAsImpute(OD = dataOD$OD, ODi = dataOD$ODi, 
-              covariates = dataOD$CO, time.covariates = dataOD$COt, 
-              COtsample = dataOD$COtsample,
-              pastDistrib = pastDistrib, 
+          
+         imp <- mict.rightSLG(dataOD, imp, pastDistrib = pastDistrib, 
               futureDistrib = futureDistrib, regr = regr, np = h - 1, 
               nr = dataOD$nr, nf = nf, nc = dataOD$nc, ud = dataOD$ud, 
               ncot = dataOD$ncot, nco = dataOD$nco, k = dataOD$k, 
               noise = dataOD$noise, available = available, REFORD_L = imporder$REFORDSLGBoth[[h]],
-              MaxGap=imporder$MaxSLGBothGapSize[h,],...)
+              MaxGap=imporder$maxBothSLG[h,],...)
         }
       }
     }
 
-    return(dataOD$ODi)
+    return(imp)
 
 }

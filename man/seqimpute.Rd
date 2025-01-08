@@ -162,7 +162,7 @@ sequences for fitting the multinomial model. While the MICT algorithm
 considers all similar patterns regardless of their temporal placement, 
 MICT-timing restricts pattern selection to those that are temporally 
 closest to the missing value. This refinement ensures that the 
-imputation process adequately accounts for temporal dynamics, resulting 
+imputation process adequately accounts for temporal dynamics, imping 
 in more accurate imputed values.
 }
 \examples{
@@ -199,14 +199,19 @@ imp4 <- seqimpute(data = gameadd, var = 1:4, covariates = 5:7,
 
 }
 \references{
-HALPIN, Brendan (2012). Multiple imputation for life-course 
+Halpin, B. (2012). Multiple imputation for life-course 
 sequence data. Working Paper WP2012-01, Department of Sociology, 
 University of Limerick. http://hdl.handle.net/10344/3639.
 
-HALPIN, Brendan (2013). Imputing sequence data: Extensions to 
+Halpin, B. (2013). Imputing sequence data: Extensions to 
 initial and terminal gaps, Stata's. Working Paper WP2013-01, 
 Department of Sociology, 
 University of Limerick. http://hdl.handle.net/10344/3620
+
+Emery, K., Studer, M., & Berchtold, A. (2024). Comparison of 
+imputation methods for univariate categorical longitudinal data. 
+Quality & Quantity, 1-25. 
+https://link.springer.com/article/10.1007/s11135-024-02028-z
 }
 \author{
 Kevin Emery <kevin.emery@unige.ch>, Andre Berchtold,  
