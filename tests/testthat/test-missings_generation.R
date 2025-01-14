@@ -1,4 +1,4 @@
-imp <- seqimpute(gameadd, var=1:4, m=1)
+imp <- seqimpute(gameadd, var = 1:4, m = 1)
 game.full <- imp$imp[[1]]
 
 
@@ -10,18 +10,18 @@ test_that("factor provided", {
 # b. var ####
 test_that("var", {
   skip_on_cran()
-  expect_no_error(seqaddNA(game.full, var=1:4))
+  expect_no_error(seqaddNA(game.full, var = 1:4))
 })
 
 # c. only traj ####
 test_that("var", {
   skip_on_cran()
-  expect_no_error(seqaddNA(game.full, var=1:3, only.traj = FALSE))
+  expect_no_error(seqaddNA(game.full, var = 1:3, only.traj = FALSE))
 })
 
 test_that("var", {
   skip_on_cran()
-  expect_no_error(seqaddNA(game.full, var=1:3, only.traj = TRUE))
+  expect_no_error(seqaddNA(game.full, var = 1:3, only.traj = TRUE))
 })
 
 # d. state high ####

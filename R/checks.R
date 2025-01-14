@@ -7,7 +7,8 @@ check.deprecated <- function(...) {
       msg <- paste0(
         "The '", names(replace.args)[i],
         "' argument is no longer supported. Please use '",
-        replace.args[i], "' instead.")
+        replace.args[i], "' instead."
+      )
       warning(msg)
     }
   }
@@ -28,76 +29,67 @@ check.deprecated <- function(...) {
 }
 
 
-dataxtract <- function(data, var)
-{
-  if (inherits(data, "tbl_df"))
+dataxtract <- function(data, var) {
+  if (inherits(data, "tbl_df")) {
     data <- as.data.frame(data)
-  if (missing(var) || is.null(var) || is.na(var[1]))
+  }
+  if (missing(var) || is.null(var) || is.na(var[1])) {
     seqdata <- data
-  else seqdata <- subset(data, , var)
+  } else {
+    seqdata <- subset(data, , var)
+  }
   return(seqdata)
 }
 
-dataputback <- function(data, var, data.traj){
-  if (missing(var) || is.null(var) || is.na(var[1]))
+dataputback <- function(data, var, data.traj) {
+  if (missing(var) || is.null(var) || is.na(var[1])) {
     seqdata <- data
-  else{
-    data[,var] <- data.traj
+  } else {
+    data[, var] <- data.traj
   }
   return(data)
 }
 
-covxtract <- function(data, covariates)
-{
-  if(!inherits(covariates,"data.frame")){
-    if(missing(covariates) || is.null(covariates) || is.na(covariates[1])){
+covxtract <- function(data, covariates) {
+  if (!inherits(covariates, "data.frame")) {
+    if (missing(covariates) || is.null(covariates) || is.na(covariates[1])) {
       data.cov <- matrix(NA, nrow = 1, ncol = 1)
-
-    }else if(length(covariates)==nrow(data) & !covariates[1]%in%colnames(data)){
+    } else if (length(covariates) == nrow(data) & !covariates[1] %in% colnames(data)) {
       data.cov <- covariates
-    }else{
-        data.cov <- subset(data, , covariates)
-      }
-  }else{
+    } else {
+      data.cov <- subset(data, , covariates)
+    }
+  } else {
     data.cov <- covariates
   }
   return(data.cov)
 }
 
-check.data <- function(OD, CO, COt, var){
-  # if (inherits(OD, "stslist")) {
-  #   valuesNA <- c(attr(OD, "nr"), attr(OD, "void"))
-  #   OD <- data.frame(OD)
-  #   OD[OD == valuesNA[1] | OD == valuesNA[2]] <- NA
-  # }else{
-  #   CO <- covxtract(OD, CO)
-  #   COt <- covxtract(OD, COt)
-  # 
-  #   OD <- dataxtract(OD, var)
-  # }
-
+check.data <- function(OD, CO, COt, var) {
   data <- list()
   data["nco"] <- compute.ncol(CO)
   data["ncot"] <- compute.ncol(COt)
 
-  data$ncot <- check.ncot(data$ncot,ncol(OD))
+  data$ncot <- check.ncot(data$ncot, ncol(OD))
 
   data$rowsNA <- rows.allmiss(OD)
-  if(length(data$rowsNA)>0){
-    data$OD <- OD[-data$rowsNA,]
-    if(data$nco>0){
-      data$CO <- CO[-data$rowsNA,]
+  if (length(data$rowsNA) > 0) {
+    data$OD <- OD[-data$rowsNA, ]
+    if (data$nco > 0) {
+      data$CO <- CO[-data$rowsNA, ]
     }
-    if(data$ncot>0){
-      data$COt <- COt[-data$rowsNA,]
+    if (data$ncot > 0) {
+      data$COt <- COt[-data$rowsNA, ]
     }
-  }else{
+  } else {
     data$OD <- OD
     data$CO <- CO
     data$COt <- COt
   }
-  data[c("OD", "ODi", "ODClass", "ODlevels", "k",
-    "nr", "nc")] <- check.traj(data$OD)
+  data[c(
+    "OD", "ODi", "ODClass", "ODlevels", "k",
+    "nr", "nc"
+  )] <- check.traj(data$OD)
 
   data$COtsample <- compute.COtsample(data$COt, data$ncot, data$nr, data$nc)
 
@@ -105,7 +97,7 @@ check.data <- function(OD, CO, COt, var){
 }
 
 
-check.predictors <- function(np, nf, npt, nfi){
+check.predictors <- function(np, nf, npt, nfi) {
   if (np == 0 & nf == 0) {
     stop("/!\\ We can't have np as well as nf equal to '0' at the same
                time")
@@ -116,11 +108,11 @@ check.predictors <- function(np, nf, npt, nfi){
   if (nfi < 0 | npt < 0) {
     stop("/!\\ nfi and npt can't be negative numbers")
   }
-  return(list(np=np, nf=nf, npt=npt, nfi=nfi))
+  return(list(np = np, nf = nf, npt = npt, nfi = nfi))
 }
 
-check.regr <- function(regr){
-  if((regr != "rf") & (regr != "multinom")){
+check.regr <- function(regr) {
+  if ((regr != "rf") & (regr != "multinom")) {
     stop("/!\\ regr defines the type of regression model you want to use.
                It has to be either assigned to character 'multinom'
                (for multinomialregression) or'rf' (for random forests)")
@@ -128,7 +120,7 @@ check.regr <- function(regr){
   return(regr)
 }
 
-check.ncot <- function(ncot,nc){
+check.ncot <- function(ncot, nc) {
   if (ncot %% nc != 0) {
     stop("/!\\ Each time-dependent covariates contained in COt has to have the
       same number of columns as the dataset.")
@@ -136,8 +128,8 @@ check.ncot <- function(ncot,nc){
   return(ncot)
 }
 
-compute.ncol <- function(x){
-  if (all(is.na(x)) == FALSE){
+compute.ncol <- function(x) {
+  if (all(is.na(x)) == FALSE) {
     if (is.null(dim(x))) {
       return(1)
     } else {
@@ -147,7 +139,7 @@ compute.ncol <- function(x){
   return(0)
 }
 
-rows.allmiss <- function(OD){
+rows.allmiss <- function(OD) {
   rowsNA <- c()
   for (i in 1:nrow(OD)) {
     if (all(is.na(OD[i, ]))) {
@@ -156,11 +148,9 @@ rows.allmiss <- function(OD){
   }
   return(rowsNA)
 }
-compute.COtsample <- function(COt, ncot, nr, nc)
-{
+compute.COtsample <- function(COt, ncot, nr, nc) {
   COtsample <- vector()
   if (ncot > 0) {
-
     COtsample <- as.data.frame(matrix(nrow = nr, ncol = 0))
 
     for (d in 1:(ncot / nc)) {
@@ -184,16 +174,16 @@ check.traj <- function(OD) {
 
   #*************************************
   ODlevels <- vector()
-  
+
   ODlevels <- sort(unique(as.vector(as.matrix(OD))))
   k <- length(ODlevels)
   OD <- as.data.frame(sapply(OD, mapvalues,
-                             from = ODlevels,
-                             to = as.character(as.vector(1:length(ODlevels)))
+    from = ODlevels,
+    to = as.character(as.vector(1:length(ODlevels)))
   ))
- 
+
   OD <- apply(as.matrix(OD), 2, as.numeric)
-  
+
 
   ODi <- OD
 
@@ -207,20 +197,23 @@ check.traj <- function(OD) {
 }
 
 
-check.cores <- function(ncores, available, m){
-  if(is.null(ncores)) {
+check.cores <- function(ncores, available, m) {
+  if (is.null(ncores)) {
     ncores <- min(available - 1, m)
-  }
-  else {
-    if(ncores > available){
-      warning(paste("'ncores' exceeds the maximum number of available cores on
+  } else {
+    if (ncores > available) {
+      warning(paste(
+        "'ncores' exceeds the maximum number of available cores on
                     your machine, and is set to",
-                    min(available - 1, m)))
+        min(available - 1, m)
+      ))
     }
 
-    if(ncores > m){
-      warning(paste("'ncores' exceeds the number of imputations, and is set to",
-                    min(available - 1, m)))
+    if (ncores > m) {
+      warning(paste(
+        "'ncores' exceeds the number of imputations, and is set to",
+        min(available - 1, m)
+      ))
     }
 
     ncores <- min(available - 1, m, ncores)

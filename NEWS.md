@@ -1,15 +1,16 @@
 # seqimpute 2.2.0
 
 ## New features
+* New version of the vignette.
+
 * seqaddNA()` now has a `pcont` argument, which allows to modify the probability 
 that a gap with missing data will be continued.
 
 ## Minor improvments and fixes
-
 * Bug regarding the frame.radius parameter that was always set as frame.radius=0,
 whathever the user provided corrected.
 
-# Bug regarding edge case with only one level in the dependent variable.
+* Bug regarding edge case with only one level in the dependent variable corrected.
 
 * For parallel computing, the maximum number of cores is set as
 availableCores()-1, instead as detectCores()-1.
@@ -28,6 +29,8 @@ changed to improve readability.
 * Each variable of the imputed object now have the same levels.
 
 * The quality and speed of the code were increased.
+
+* Reference to new article about MICT-timing added.
 
 # seqimpute 2.1.0
 
