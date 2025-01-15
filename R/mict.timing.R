@@ -106,6 +106,7 @@ mict.timing.impute <- function(data, imp, MaxGap, regr, np, nf,
                                REFORD_L, frame.radius, verbose, ...) {
   nc <- data$nc
   nr <- data$nr
+  k <- data$k
 
   for (order in 1:MaxGap) {
     if (verbose == TRUE) {
@@ -118,7 +119,7 @@ mict.timing.impute <- function(data, imp, MaxGap, regr, np, nf,
       col_to_imp <- unique(sort(unique(REFORD_L[[order]])[, 2]))
     }
 
-    shift <- compute.shift(order, MaxGap, timing, np, nf)
+    shift <- compute.shift(order, MaxGap, timing=TRUE, np, nf)
 
     for (i in 1:length(col_to_imp)) {
       col <- col_to_imp[i]

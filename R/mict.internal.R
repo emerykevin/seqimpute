@@ -11,7 +11,7 @@ mict.internal <- function(
     if (verbose == TRUE) {
       print(paste0("Step ", order, "/", MaxGap))
     }
-    shift <- compute.shift(order, MaxGap, timing, np, nf)
+    shift <- compute.shift(order, MaxGap, timing=FALSE, np, nf)
 
     train <- compute.traindata(data, MaxGap, order, shift, np, nc, nr, nf, k,
       pastDistrib, futureDistrib,

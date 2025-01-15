@@ -11,7 +11,7 @@ mict.leftSLG <- function(
     if (MaxGap[h] > 0) {
       np_temp <- h - 1
       for (order in 1:MaxGap[h]) {
-        shift <- compute.shift(order, MaxGap[h], timing, np_temp, nf)
+        shift <- compute.shift(order, MaxGap[h], timing=FALSE, np_temp, nf)
         train <- compute.traindata(data, MaxGap[h], order, shift, np_temp, nc,
           nr, nf, k, pastDistrib, futureDistrib,
           col = 0,
