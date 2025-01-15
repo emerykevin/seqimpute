@@ -1,19 +1,19 @@
 Type: Package
 Package: seqimpute
 Title: Imputation of Missing Data in Sequence Analysis
-Version: 2.2
+Version: 2.2.0
 Authors@R: c(
     person("Kevin", "Emery", , "kevin.emery@unige.ch", role = c("aut", "cre")),
     person("Anthony", "Guinchard", role = "aut"),
     person("Andre", "Berchtold", role = "aut"),
     person("Kamyar", "Taher", role = "aut")
   )
-Description: Multiple imputation of missing data present in a dataset
-    through the prediction based on either a random forest or a
-    multinomial regression model. Covariates and time-dependent covariates
-    can be included in the model. The prediction of the missing values is
-    based on the method of Halpin (2012)
-    <https://researchrepository.ul.ie/articles/report/Multiple_imputation_for_life-course_sequence_data/19839736>.
+Description: Multiple imputation of missing data in a dataset using MICT or 
+    MICT-timing methods. The core idea of the algorithms is to fill gaps of 
+    missing data, which is the typical form of missing data in a longitudinal 
+    setting, recursively from their edges. Prediction is based on either a 
+    multinomial or random forest regression model. Covariates and 
+    time-dependent covariates can be included in the model.
 License: GPL-2
 Imports: 
     Amelia,
