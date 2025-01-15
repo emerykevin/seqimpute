@@ -7,43 +7,43 @@
 seqmissIplot(data, var = NULL, with.complete = TRUE, void.miss = TRUE, ...)
 }
 \arguments{
-\item{data}{Either a data frame containing sequences of a categorical 
-variable, where missing data are coded as \code{NA}, or a state sequence 
+\item{data}{Either a data frame containing sequences of a categorical
+variable, where missing data are coded as \code{NA}, or a state sequence
 object created using the \link[TraMineR]{seqdef} function.}
 
-\item{var}{A vector specifying the columns of the dataset 
-that contain the trajectories. Default is \code{NULL}, meaning all columns 
+\item{var}{A vector specifying the columns of the dataset
+that contain the trajectories. Default is \code{NULL}, meaning all columns
 are used.}
 
-\item{with.complete}{Logical, if \code{TRUE}, complete trajectories 
+\item{with.complete}{Logical, if \code{TRUE}, complete trajectories
 will be included in the plot.}
 
-\item{void.miss}{Logical, if \code{TRUE}, treats void elements as 
-missing values. Applies only to state sequence objects created with 
-\link[TraMineR]{seqdef}. Note that the default behavior of \code{seqdef} 
+\item{void.miss}{Logical, if \code{TRUE}, treats void elements as
+missing values. Applies only to state sequence objects created with
+\link[TraMineR]{seqdef}. Note that the default behavior of \code{seqdef}
 is to treat missing data at the end of sequences as void elements.}
 
-\item{...}{Additional parameters passed to the 
+\item{...}{Additional parameters passed to the
 \link[TraMineR]{seqIplot} function.}
 }
 \description{
-This function plots all patterns of missing data within sequences, based on 
+This function plots all patterns of missing data within sequences, based on
 the \link[TraMineR]{seqIplot} function.
 }
 \details{
-This function uses \link[TraMineR]{seqIplot} to visualize all patterns of 
-missing data within sequences. For further customization options, refer to 
+This function uses \link[TraMineR]{seqIplot} to visualize all patterns of
+missing data within sequences. For further customization options, refer to
 the \link[TraMineR]{seqIplot} documentation.
 }
 \examples{
 # Plot all the patterns of missing data
 
-seqmissIplot(gameadd, var=1:4)
+seqmissIplot(gameadd, var = 1:4)
 
-# Plot all the patterns of missing data discarding 
+# Plot all the patterns of missing data discarding
 # complete trajectories
 
-seqmissIplot(gameadd, var=1:4, with.missing = FALSE)
+seqmissIplot(gameadd, var = 1:4, with.missing = FALSE)
 }
 \author{
 Kevin Emery

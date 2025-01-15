@@ -6,9 +6,9 @@
 * seqaddNA()` now has a `pcont` argument, which allows to modify the probability 
 that a gap with missing data will be continued.
 
-## Minor improvments and fixes
+## Minor improvements and fixes
 * Bug regarding the frame.radius parameter that was always set as frame.radius=0,
-whathever the user provided corrected.
+whatever the user provided corrected.
 
 * Bug regarding edge case with only one level in the dependent variable corrected.
 
@@ -21,9 +21,9 @@ the number of multiple imputations, or the number of availableCores()-1.
 * Explanations of `seqaddNA()` have been deepened.
 
 * Explanations of `seqimpute()` regarding the slots of the seqimp object that 
-is returned have been depened.
+is returned have been deepened.
 
-* The colours for the `seqmissIplot()` and `seqmissfplot` plots have been 
+* The colors for the `seqmissIplot()` and `seqmissfplot` plots have been 
 changed to improve readability.
 
 * Each variable of the imputed object now have the same levels.
@@ -46,12 +46,12 @@ class `stslist` should be considered as missings or not.
 proportion of missing data that is allowed to be simulated in a sequence.
 
 
-## Minor improvments and fixes
+## Minor improvements and fixes
 * Fixes issues with `seqimpute()` when more than one row only with NA's end 
 the dataset to impute.
 
 * In `seqmissIplot()` and `seqmissfplot()`, the states in the plots are now 
-labbeled as 'missing' and 'not missing' instead of 'missing' and 'observed' to 
+labeled as 'missing' and 'not missing' instead of 'missing' and 'observed' to 
 account for uneven sequence length.
 
 * Fixes issues in `seqimpute()` related to the preparation of the data when

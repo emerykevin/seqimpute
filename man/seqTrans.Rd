@@ -7,17 +7,17 @@
 seqTrans(data, var = NULL, trans)
 }
 \arguments{
-\item{data}{a data frame containing sequences of a multinomial 
+\item{data}{a data frame containing sequences of a multinomial
 variable with missing data (coded as \code{NA})}
 
-\item{var}{the list of columns containing the trajectories. 
+\item{var}{the list of columns containing the trajectories.
 Default is NULL, i.e. all the columns.}
 
-\item{trans}{\code{character} vector gathering the impossible transitions. 
+\item{trans}{\code{character} vector gathering the impossible transitions.
 For example: trans <- c("1->3","1->4","2->1","4->1","4->3")}
 }
 \value{
-It returns a matrix where each row is the position of an 
+It returns a matrix where each row is the position of an
 impossible transition.
 }
 \description{

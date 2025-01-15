@@ -18,69 +18,69 @@ seqaddNA(
 )
 }
 \arguments{
-\item{data}{A data frame containing sequences of a categorical (multinomial) 
+\item{data}{A data frame containing sequences of a categorical (multinomial)
 variable, where missing data are coded as \code{NA}.}
 
-\item{var}{A vector specifying the columns of the dataset 
-that contain the trajectories. Default is \code{NULL}, meaning all columns 
+\item{var}{A vector specifying the columns of the dataset
+that contain the trajectories. Default is \code{NULL}, meaning all columns
 are used.}
 
-\item{states.high}{A list of states with a higher probability of 
+\item{states.high}{A list of states with a higher probability of
 initiating a subsequent missing data gap.}
 
-\item{propdata}{Proportion of trajectories for which missing data 
+\item{propdata}{Proportion of trajectories for which missing data
 is simulated, as a decimal between 0 and 1.}
 
-\item{pstart.high}{Probability of starting a missing data gap for the 
+\item{pstart.high}{Probability of starting a missing data gap for the
 states specified in the \code{states.high} argument.}
 
-\item{pstart.low}{Probability of starting a missing data gap for all 
+\item{pstart.low}{Probability of starting a missing data gap for all
 other states.}
 
 \item{pcont}{Probability of a missing data gap to continue.}
 
 \item{maxgap}{Maximum length of a missing data gap.}
 
-\item{maxprop}{Maximum proportion of missing data allowed in a sequence, 
+\item{maxprop}{Maximum proportion of missing data allowed in a sequence,
 as a decimal between 0 and 1.}
 
-\item{only.traj}{Logical, if \code{TRUE}, only the 
-trajectories (specified in \code{var}) are returned. If \code{FALSE}, 
+\item{only.traj}{Logical, if \code{TRUE}, only the
+trajectories (specified in \code{var}) are returned. If \code{FALSE},
 the entire data frame is returned.}
 }
 \value{
 A data frame with simulated missing data.
 }
 \description{
-Generation of missing data in sequence based on a Markovian 
+Generation of missing data in sequence based on a Markovian
 approach.
 }
 \details{
-The first timepoint of a trajectory has a \code{pstart.low} probability to
-be missing. For the next timepoints, the probabiltity to be missing depends
-on the previous timepoint. There are four cases:
+The first time point of a trajectory has a \code{pstart.low} probability to
+be missing. For the next time points, the probability to be missing depends
+on the previous time point. There are four cases:
 
-1. If the previous timepoint is missing and the maximum length of a 
+1. If the previous time point is missing and the maximum length of a
 missing gap, which is specified by the argument \code{maxgap}, is reached,
-the timepoint is set as observed.
+the time point is set as observed.
 
-2. If the previous timepoint is missing, but the maximum length of a gap is
-not reached, there is a \code{pcont} probability that this timepoint is missing.
+2. If the previous time point is missing, but the maximum length of a gap is
+not reached, there is a \code{pcont} probability that this time point is missing.
 
-3. If the previous timepoint is observed and the previous timepoint belongs
-to the list of states specified by \code{pstart.high}, the probability to 
+3. If the previous time point is observed and the previous time point belongs
+to the list of states specified by \code{pstart.high}, the probability to
 be missing is \code{pstart.high}.
 
-4. If the previous timepoint is observed but the previous timepoint does not
-belong to the list of states specified by \code{pstart.high}, the 
+4. If the previous time point is observed but the previous time point does not
+belong to the list of states specified by \code{pstart.high}, the
 probability to be missing is \code{pstart.low}.
 
-If the proportion of missing data in a given trajectory exceeds the 
-proportion specified by \code{maxprop}, the missing data simulation is 
+If the proportion of missing data in a given trajectory exceeds the
+proportion specified by \code{maxprop}, the missing data simulation is
 repeated for the sequence.
 }
 \examples{
-# Generate MCAR missing data on the mvad dataset 
+# Generate MCAR missing data on the mvad dataset
 # from the TraMineR package
 
 \dontrun{
@@ -88,9 +88,9 @@ data(mvad, package = "TraMineR")
 mvad.miss <- seqaddNA(mvad, var = 17:86)
 
 
-# Generate missing data on mvad where joblessness is more likely to trigger 
+# Generate missing data on mvad where joblessness is more likely to trigger
 # a missing data gap
-mvad.miss2 <- seqaddNA(mvad, var = 17:86,  states.high = "joblessness")
+mvad.miss2 <- seqaddNA(mvad, var = 17:86, states.high = "joblessness")
 }
 
 }

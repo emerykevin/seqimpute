@@ -7,11 +7,11 @@
 seqcomplete(data, var = NULL)
 }
 \arguments{
-\item{data}{either a data frame containing sequences of a multinomial 
-variable with missing data (coded as \code{NA}) or a state sequence 
+\item{data}{either a data frame containing sequences of a multinomial
+variable with missing data (coded as \code{NA}) or a state sequence
 object built with the TraMineR package}
 
-\item{var}{the list of columns containing the trajectories. 
+\item{var}{the list of columns containing the trajectories.
 Default is NULL, i.e. all the columns.}
 }
 \value{
@@ -27,8 +27,6 @@ Extract all the trajectories without missing value.
 data(gameadd)
 # Extract the trajectories without any missing data
 gameadd.complete <- seqcomplete(gameadd, var = 1:4)
-
-
 
 }
 \author{

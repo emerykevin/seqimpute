@@ -8,15 +8,15 @@ object}
 fromseqimp(data, format = "long", include = FALSE)
 }
 \arguments{
-\item{data}{An object of class seqimp as created by the 
+\item{data}{An object of class seqimp as created by the
 function \link[seqimpute]{seqimpute}}
 
-\item{format}{The format in which the seqimp object should be returned. It 
+\item{format}{The format in which the seqimp object should be returned. It
 could be: \code{"long"}, \code{"stacked"} and \code{"mids"}.
 See the Details section for the interpretation.}
 
 \item{include}{logical that indicates if the original dataset with missing
-value should be included or not. This parameter does not apply 
+value should be included or not. This parameter does not apply
 if \code{format="mids"}.}
 }
 \value{
@@ -30,22 +30,21 @@ The argument \code{format} specifies the object that should be returned
 by the function. It can take the following values
 \describe{
  \item{\code{"long"}}{
- 
- produces a data set in which imputed data sets are stacked vertically. 
- The following columns are added: 1) \code{.imp} referring to the 
+
+ produces a data set in which imputed data sets are stacked vertically.
+ The following columns are added: 1) \code{.imp} referring to the
  imputation number, and 2) \code{.id} the row names of the original dataset}
  \item{\code{"stacked"}}{
- 
- the same as \code{"long"}, but without the inclusion of 
+
+ the same as \code{"long"}, but without the inclusion of
  the two columns \code{.imp} and \code{.id}}
  \item{\code{"mids"}}{
- 
+
  produces an object of class \code{mids}, which is the format
  used by the \code{mice} package.}
 }
 }
 \examples{
-
 \dontrun{
 # Imputation with the MICT algorithm
 imp <- seqimpute(data = gameadd, var = 1:4)
@@ -53,8 +52,10 @@ imp <- seqimpute(data = gameadd, var = 1:4)
 # The object imp is transformed to a dataframe, where completed datasets are
 # stacked vertically
 
-imp.stacked <- fromseqimp(data = imp, 
-    format = "stacked", include = FALSE)
+imp.stacked <- fromseqimp(
+  data = imp,
+  format = "stacked", include = FALSE
+)
 }
 
 }

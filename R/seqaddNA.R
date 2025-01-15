@@ -5,22 +5,22 @@
 #'
 #' @details
 #'
-#' The first timepoint of a trajectory has a \code{pstart.low} probability to
-#' be missing. For the next timepoints, the probabiltity to be missing depends
-#' on the previous timepoint. There are four cases:
+#' The first time point of a trajectory has a \code{pstart.low} probability to
+#' be missing. For the next time points, the probability to be missing depends
+#' on the previous time point. There are four cases:
 #'
-#' 1. If the previous timepoint is missing and the maximum length of a
+#' 1. If the previous time point is missing and the maximum length of a
 #' missing gap, which is specified by the argument \code{maxgap}, is reached,
-#' the timepoint is set as observed.
+#' the time point is set as observed.
 #'
-#' 2. If the previous timepoint is missing, but the maximum length of a gap is
-#' not reached, there is a \code{pcont} probability that this timepoint is missing.
+#' 2. If the previous time point is missing, but the maximum length of a gap is
+#' not reached, there is a \code{pcont} probability that this time point is missing.
 #'
-#' 3. If the previous timepoint is observed and the previous timepoint belongs
+#' 3. If the previous time point is observed and the previous time point belongs
 #' to the list of states specified by \code{pstart.high}, the probability to
 #' be missing is \code{pstart.high}.
 #'
-#' 4. If the previous timepoint is observed but the previous timepoint does not
+#' 4. If the previous time point is observed but the previous time point does not
 #' belong to the list of states specified by \code{pstart.high}, the
 #' probability to be missing is \code{pstart.low}.
 #'

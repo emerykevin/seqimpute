@@ -7,15 +7,15 @@
 seqwithmiss(data, var = NULL)
 }
 \arguments{
-\item{data}{either a data frame containing sequences of a multinomial 
-variable with missing data (coded as \code{NA}) or a state sequence 
+\item{data}{either a data frame containing sequences of a multinomial
+variable with missing data (coded as \code{NA}) or a state sequence
 object built with the TraMineR package}
 
-\item{var}{the list of columns containing the trajectories. 
+\item{var}{the list of columns containing the trajectories.
 Default is NULL, i.e. all the columns.}
 }
 \value{
-Returns either a data frame or a state sequence object, 
+Returns either a data frame or a state sequence object,
 depending the type of data that was provided to the function
 }
 \description{

@@ -8,16 +8,16 @@ obtained with the \code{seqimpute} function}
 addcluster(impdata, clustering)
 }
 \arguments{
-\item{impdata}{An object of class \code{seqimp} as created by the 
+\item{impdata}{An object of class \code{seqimp} as created by the
 \code{seqimpute} function}
 
-\item{clustering}{clustering made on the multiple imputed dataset. Can 
+\item{clustering}{clustering made on the multiple imputed dataset. Can
 either be a dataframe or a matrix, where each row correspond to an
 observation and each column to a multiple imputed dataset}
 }
 \value{
-Returns a \code{seqimp} object containing the cluster to which each 
-sequence in each imputed dataset belongs. Specifically, a column named 
+Returns a \code{seqimp} object containing the cluster to which each
+sequence in each imputed dataset belongs. Specifically, a column named
 cluster is added to the imputed datasets.
 }
 \description{

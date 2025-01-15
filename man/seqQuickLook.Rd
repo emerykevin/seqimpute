@@ -7,33 +7,33 @@
 seqQuickLook(data, var = NULL, np = 1, nf = 1)
 }
 \arguments{
-\item{data}{a data.frame where missing data are coded as NA or 
+\item{data}{a data.frame where missing data are coded as NA or
 a state sequence object built with \link[TraMineR]{seqdef} function}
 
-\item{var}{the list of columns containing the trajectories. 
+\item{var}{the list of columns containing the trajectories.
 Default is NULL, i.e. all the columns.}
 
-\item{np}{number of previous observations in the imputation model of the 
+\item{np}{number of previous observations in the imputation model of the
 internal gaps.}
 
-\item{nf}{number of future observations in the imputation model of the 
+\item{nf}{number of future observations in the imputation model of the
 internal gaps.}
 }
 \value{
-Returns a  \code{data.frame} object that summarizes, for each 
-type of gaps (Internal Gaps, Initial Gaps, Terminal Gaps, 
+Returns a  \code{data.frame} object that summarizes, for each
+type of gaps (Internal Gaps, Initial Gaps, Terminal Gaps,
 LEFT-hand side SLG, RIGHT-hand side SLG, Both-hand side SLG),
 the minimum length, the maximum length, the total number of gaps and
 the total number of missing they contain.
 }
 \description{
 The \code{seqQuickLook()} function aimed at providing an overview of the
-number and size of the different types of gaps 
+number and size of the different types of gaps
 spread in the original dataset.
 }
 \details{
-The distinction between internal and SLG gaps depends on the 
-number of previous (\code{np}) and future (\code{nf}) observations that are 
+The distinction between internal and SLG gaps depends on the
+number of previous (\code{np}) and future (\code{nf}) observations that are
 set for the \code{MICT} and \code{MICT-timing} algorithms.
 }
 \examples{

@@ -17,8 +17,8 @@ value should be plotted or not}
 \item{...}{Arguments to be passed to the seqdplot function}
 }
 \description{
-Plot a \code{seqimp} object. The state distribution plot of the first 
-\code{m} completed datasets is shown, possibly alongside the original 
+Plot a \code{seqimp} object. The state distribution plot of the first
+\code{m} completed datasets is shown, possibly alongside the original
 dataset with missing data
 }
 \author{

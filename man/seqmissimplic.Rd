@@ -8,18 +8,18 @@ with missing data}
 seqmissimplic(data, var = NULL, void.miss = TRUE, ...)
 }
 \arguments{
-\item{data}{Either a data frame containing sequences of a categorical 
-variable, where missing data are coded as \code{NA}, or a state sequence 
+\item{data}{Either a data frame containing sequences of a categorical
+variable, where missing data are coded as \code{NA}, or a state sequence
 object created using the \link[TraMineR]{seqdef} function.}
 
-\item{var}{A vector specifying the columns of the dataset 
-that contain the trajectories. Default is \code{NULL}, meaning all columns 
+\item{var}{A vector specifying the columns of the dataset
+that contain the trajectories. Default is \code{NULL}, meaning all columns
 are used.}
 
-\item{void.miss}{Logical, if \code{TRUE}, treats void elements as 
-missing values. This argument applies only to state sequence objects created 
-with \link[TraMineR]{seqdef}. Note that the default behavior of 
-\link[TraMineR]{seqdef} is to treat missing data at the end of sequences as 
+\item{void.miss}{Logical, if \code{TRUE}, treats void elements as
+missing values. This argument applies only to state sequence objects created
+with \link[TraMineR]{seqdef}. Note that the default behavior of
+\link[TraMineR]{seqdef} is to treat missing data at the end of sequences as
 void elements.}
 
 \item{...}{parameters to be passed to the \link[TraMineRextras]{seqimplic}
@@ -29,16 +29,16 @@ function}
 returns a \code{seqimplic} object that can be plotted and printed.
 }
 \description{
-This function identifies and visualizes states that best characterize 
-sequences with missing data at each position (time point), comparing them to 
-sequences without missing data at each position (time point). It is based on 
-the \link[TraMineRextras]{seqimplic} function. For more information on the 
+This function identifies and visualizes states that best characterize
+sequences with missing data at each position (time point), comparing them to
+sequences without missing data at each position (time point). It is based on
+the \link[TraMineRextras]{seqimplic} function. For more information on the
 methodology, see the \code{seqimplic} documentation.
 }
 \examples{
 
 # For illustration purpose, we simulate missing data on the mvad dataset,
-# available in the TraMineR package. The state "joblessness" state has a 
+# available in the TraMineR package. The state "joblessness" state has a
 # higher probability of triggering a missing gap
 
 \dontrun{
