@@ -67,7 +67,7 @@
 #' # Generate MCAR missing data on the mvad dataset
 #' # from the TraMineR package
 #'
-#' \dontrun{
+#' \donttest{
 #' data(mvad, package = "TraMineR")
 #' mvad.miss <- seqaddNA(mvad, var = 17:86)
 #'
@@ -80,8 +80,9 @@
 #' @export
 seqaddNA <- function(
     data, var = NULL, states.high = NULL, propdata = 1,
-    pstart.high = 0.1, pstart.low = 0.005, pcont = 0.66, maxgap = 3, maxprop = 0.75,
-    only.traj = FALSE) {
+    pstart.high = 0.1, pstart.low = 0.005, pcont = 0.66, maxgap = 3, 
+    maxprop = 0.75, only.traj = FALSE) {
+  
   data.traj <- dataxtract(data, var)
 
   sizehalf <- round(propdata * nrow(data.traj))

@@ -1,6 +1,7 @@
 final.transform <- function(
-    RESULT, ODClass, ODlevels,
+    RESULT, data, ODlevels,
     rownamesDataset, nrowsDataset, nr, nc, rowsNA, mi) {
+  
   RESULT <- apply(RESULT, 2, as.numeric)
 
   if (length(rowsNA) > 0) {
@@ -23,7 +24,7 @@ final.transform <- function(
     )
   )
 
-  if (ODClass == "factor") {
+  if (inherits(data[1, 1], "factor")) {
     RESULT <- mutate_if(RESULT, is.character, factor, levels = ODlevels)
   }
 

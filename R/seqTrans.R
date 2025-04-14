@@ -81,17 +81,12 @@ seqTrans <- function(data, var = NULL, trans) {
   nr <- nrow(data)
   nc <- ncol(data)
 
-
-
-  dataClass <- class(data[1, 1])
-  if ((dataClass != "factor") & (dataClass != "character") &
-    (dataClass != "numeric")) {
+  if (!inherits(data[1, 1], c("factor", "character", "numeric"))) {
     stop("/!\\ The class of the variables contained in your original dataset
          should be either 'factor', 'character', or 'numeric'")
   }
 
-
-  if (dataClass == "factor" | dataClass == "character") {
+  if (inherits(data[1, 1], c("factor", "character"))) {
     k <- length(sort(unique(as.vector(as.matrix(data)))))
   } else {
     k <- max(data)

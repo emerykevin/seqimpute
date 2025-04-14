@@ -5,7 +5,7 @@ mict.timing <- function(
   imp <- data$ODi
   if (imporder$maxInternal > 0) {
     if (verbose) {
-      print("Imputation of the internal gaps...")
+      cat("  Imputation of the internal gaps...\n")
     }
 
     imp <- mict.timing.impute(
@@ -17,7 +17,7 @@ mict.timing <- function(
   }
   if (imporder$maxInitial > 0) {
     if (verbose) {
-      print("Imputation of the initial gaps...")
+      cat("  Imputation of the initial gaps...\n")
     }
     imp <- mict.timing.impute(data, imp,
       imporder$maxInitial, regr,
@@ -28,7 +28,7 @@ mict.timing <- function(
   }
   if (imporder$maxTerminal > 0) {
     if (verbose == TRUE) {
-      print("Imputation of the terminal gaps...")
+      cat("  Imputation of the terminal gaps...\n")
     }
 
     imp <- mict.timing.impute(data, imp,
@@ -40,7 +40,7 @@ mict.timing <- function(
   }
   if (max(imporder$maxLeftSLG) > 0) {
     if (verbose == TRUE) {
-      print("Imputation of the left-hand side SLG...")
+      cat("  Imputation of the left-hand side SLG...\n")
     }
 
     for (h in 2:np) {
@@ -59,7 +59,7 @@ mict.timing <- function(
   }
   if (max(imporder$maxRightSLG) > 0) {
     if (verbose == TRUE) {
-      print("Imputation of the right-hand side SLG...")
+      cat("  Imputation of the right-hand side SLG...\n")
     }
 
     for (h in (data$nc - 1):(data$nc - nf + 1)) {
@@ -78,7 +78,7 @@ mict.timing <- function(
   }
   if (max(imporder$maxBothSLG) > 0) {
     if (verbose == TRUE) {
-      print("Imputation of the both-hand side SLG...")
+      cat("  Imputation of the both-hand side SLG...\n")
     }
     for (g in 2:np) {
       for (h in (data$nc - 1):(data$nc - nf + 1)) {
@@ -110,7 +110,7 @@ mict.timing.impute <- function(data, imp, MaxGap, regr, np, nf,
 
   for (order in 1:MaxGap) {
     if (verbose == TRUE) {
-      print(paste0("Step ", order, "/", MaxGap))
+      cat(paste0("    Step ", order, "/", MaxGap,"\n"))
     }
 
     if (is.vector(REFORD_L[[order]])) {

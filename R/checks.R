@@ -87,7 +87,7 @@ check.data <- function(OD, CO, COt, var) {
     data$COt <- COt
   }
   data[c(
-    "OD", "ODi", "ODClass", "ODlevels", "k",
+    "OD", "ODi", "ODlevels", "k",
     "nr", "nc"
   )] <- check.traj(data$OD)
 
@@ -165,9 +165,8 @@ compute.COtsample <- function(COt, ncot, nr, nc) {
 check.traj <- function(OD) {
   nc <- ncol(OD)
   nr <- nrow(OD)
-  ODClass <- class(OD[1, 1])
 
-  if ((ODClass != "factor") & (ODClass != "character")) {
+  if (!inherits(OD[1, 1], c("factor", "character"))) {
     stop("/!\\ The class of the variables contained in your original dataset
            should be either 'factor' or 'character'")
   }
@@ -187,13 +186,13 @@ check.traj <- function(OD) {
 
   ODi <- OD
 
-  if (ODClass == "factor") {
+  if (inherits(OD[1, 1], "factor")) {
     for (j in 1:nc) {
       ODi[, j] <- factor(x = OD[, j], levels = c(1:k))
     }
   }
 
-  return(list(OD, ODi, ODClass, ODlevels, k, nr, nc))
+  return(list(OD, ODi, ODlevels, k, nr, nc))
 }
 
 

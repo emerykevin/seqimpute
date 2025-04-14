@@ -1,0 +1,886 @@
+%\VignetteEngine{knitr::knitr}
+%\VignetteIndexEntry{Treating Missing Data in Categorical Sequence Data}
+%\VignettePackage{seqimpute}
+\documentclass[nojss]{jss}
+%% -- LaTeX packages and custom commands ---------------------------------------
+
+%% recommended packages
+\usepackage{thumbpdf,lmodern}
+
+\usepackage[utf8]{inputenc}
+%% another package (only for this demo article)
+\usepackage{framed}
+
+%% new custom commands
+\newcommand{\class}[1]{`\code{#1}'}
+\newcommand{\fct}[1]{\code{#1()}}
+
+%% For Sweave-based articles about R packages:
+%% need no \usepackage{Sweave}
+
+
+%% -- Article metainformation (author, title, ...) -----------------------------
+
+%% - \author{} with primary affiliation (and optionally ORCID link)
+%% - \Plainauthor{} without affiliations
+%% - Separate authors by \And or \AND (in \author) or by comma (in \Plainauthor).
+%% - \AND starts a new line, \And does not.
+\author{Kevin Emery\\University of Geneva
+	\And Anthony Guinchard\\University of Lausanne
+	\And Kamyar Taher\\University of Lausanne
+	\And André Berchtold\\University of Lausanne}
+\Plainauthor{Kevin Emery, Anthony Guinchard, Kamyar Taher, André Berchtold}
+
+%% - \title{} in title case
+%% - \Plaintitle{} without LaTeX markup (if any)
+%% - \Shorttitle{} with LaTeX markup (if any), used as running title
+\title{seqimpute: Treating Missing Data in Categorical Sequence Data Through Multiple Imputation}
+\Plaintitle{Multiple imputation with the seqimpute package}
+\Shorttitle{Multiple imputation with the seqimpute package}
+
+%% - \Abstract{} almost as usual
+\Abstract{
+	This article describes the tools available in the \pkg{seqimpute} package. It focuses on the treatment of missing data in longitudinal categorical data. It mainly implements two methods to handle missing data by multiple imputation, namely MICT and MICT-timing. In addition, the package provides tools to visualise missing data in longitudinal categorical data. In particular, this article provides a practical demonstration of the imputation algorithms together on a typical sequence analysis workflow, namely deriving a typology and then using it as a variable in a regression analysis.
+}
+
+%% - \Keywords{} with LaTeX markup, at least one required
+%% - \Plainkeywords{} without LaTeX markup (if necessary)
+%% - Should be comma-separated and in sentence case.
+\Keywords{missing data, multiple imputation, categorical longitudinal data, MICT, MICT-timing, sequence analysis}
+
+\Plainkeywords{missing data, multiple imputation, categorical longitudinal data, MICT, MICT-timing, sequence analysis}
+
+%% - \Address{} of at least one author
+%% - May contain multiple affiliations for each author
+%%   (in extra lines, separated by \emph{and}\\).
+%% - May contain multiple authors for the same affiliation
+%%   (in the same first line, separated by comma).
+\Address{
+	Kevin Emery\\
+	Swiss Centre of Expertise in Life Course Research LIVES\\
+	\emph{and}\\
+	Faculty of Social Sciences\\
+	University of Geneva\\
+	Geneva, Switzerland\\
+	E-mail: \email{kevin.emery@unige.ch}\\
+}
+
+\begin{document}
+	\pagenumbering{gobble}
+	\maketitle
+	\pagenumbering{arabic}
+	
+\section{Introduction}
+Missing data is a common issue that can significantly affect the results of statistical analyses. For example, \citet{Lall2016} reanalysed quantitative studies published in two leading political science journals over a five-year period where missing values were initially handled by deleting all cases with missing values. When multiple imputation was applied, the statistical significance of the results changed in almost half of the studies, with some analyses even producing opposite conclusions. This highlights the strong influence that the method chosen to deal with missing data can have on research results.
+
+While the simple approach of excluding cases with missing values may seem attractive, it is often inadequate. This method can result in a significant reduction in the number of cases available, thereby reducing the statistical power \citep{King2001} and hence the ability to detect effects. The problem is particularly pronounced for categorical sequence data, where even a single missing value can result in the removal of an entire trajectory. Furthermore, retaining only complete cases can introduce bias and lead to incorrect inferences. \citet{Perkins2018} illustrated this by showing how removing cases with missing data incorrectly suggested a protective effect of smoking on the risk of spontaneous abortion.
+
+Multiple imputation is a versatile approach for addressing missing values. It creates multiple complete datasets by replacing missing values with plausible values. Multiple complete datasets are created, rather than just one, to account for the inherent uncertainty associated with missing data. Statistical analysis is then performed independently on each complete dataset, and the results of these statistical analyses are finally combined \citep{Rubin1987}. A critical step in this process is determining how to generate plausible values to replace the missing ones.  Various methods exist, implemented in packages such as \pkg{VIM} \citep{VIM} and \pkg{Hmisc} \citep{Hmisc} in \proglang{R}. 
+
+However, few approaches apply to longitudinal categorical data. For instance, \pkg{jomo} \citep{jomo} and \pkg{Amelia} \citep{Amelia} rely on multivariate normal joint modeling, which assumes that the data structure can be adequately represented by a multivariate normal distribution. This approach can be extended to categorical data by decomposing it into multiple binary variables. However, this strategy has significant drawbacks: the number of model parameters grows rapidly, leading to overfitting, and the covariance matrix becomes non-invertible when collinearity exists between binary variables \citep{Audigier2017}—a scenario that is particularly likely in longitudinal data. The \pkg{mice} package \citep{mice2011}, which applies multiple imputation through Fully Conditional Specification (FCS), is highly flexible, supports a wide range of data types. Additionally, it includes tools to perform statistical analysis on multiple imputed datasets. Despite its versatility, \pkg{mice} does not explicitly account for the unique patterns of missingness commonly observed in longitudinal categorical data, such as gaps—consecutive missing values. The \pkg{PST} package \citep{vlmc} enables imputations using variable-length Markov Chain models. However, a Markovian model can be overly simplistic for complex longitudinal data, such as life-course trajectories. In particular, Markovian models rely solely on previous information to impute missing values, overlooking the potential benefits of incorporating future information to improve imputation quality.
+
+To address these limitations, the \pkg{seqimpute} package introduces two methods specifically designed for longitudinal categorical data: the MICT algorithm \citep{Halpin2012} and the MICT-timing algorithm \citep{Emery}. These methods take a recursive approach to impute gaps of missing data, starting from the edges and working inward.
+
+This document provides a practical demonstration of the imputation algorithms implemented in the package, together with some visualisation tools. The illustrative example shows a typical sequence analysis workflow: construction of a typology by cluster analysis and subsequent use of this typology in a regression analysis \citep{PiccarretaHolistic}. For a general overview of sequence analysis, see \cite{Liao2022}. Practical guidance for studying sequences in \proglang{R} is available in \cite{GabadinhoTraMineR}, while \cite{StuderWeighted} more specifically focus on clustering. However, the imputation methods presented here are not limited to this specific application of sequence analysis, nor to sequences. They are broadly applicable to a wide range of statistical analyses involving longitudinal categorical data.
+
+The rest of this document follows the following structure.
+\begin{itemize}
+	\item Section \ref{sec:miss} discusses the challenges posed by missing data and highlights the flexibility of multiple imputation as a treatment.
+	\item Section \ref{sec:algo} introduces the two algorithms implemented in the \pkg{seqimpute} package: MICT and MICT-timing.
+	\item Section \ref{sec:sample} describes the dataset used for illustration.
+	\item Section \ref{sec:steps} outlines the four steps involved in using clustering in a regression analysis when data are incomplete.
+	\begin{enumerate}
+		\item Description and visualization of missing data (subsection \ref{sec:visu})
+		\item Multiple imputation (subsection \ref{sec:mi})
+		\item Typology construction (subsection \ref{sec:typ})
+		\item Regression (subsection \ref{sec:reg})
+	\end{enumerate}
+	\item Section \ref{sec:guide} provides guidelines tailored to the imputation algorithms implemented in this package.
+	\item Section \ref{sec:others} highlights additional features of the package, including parallel computing and the use of random forest imputation models.
+	\item Section 8 focuses on additional functionalities available in the package.
+	\item Section \ref{sec:conclusion} concludes the document with a brief summary.
+\end{itemize}
+
+
+\section{Missing data issues and treatment}
+\label{sec:miss}
+This section provides a broad overview of missing data challenges and the principles of multiple imputation. For a more comprehensive discussion on missing data, including detailed statistical explanations, refer to \citet{LittleStatisticalAnalysis} or \citet{Molenberghs}, and for an in-depth treatment of multiple imputation, see \citet{vanBuuren}.
+
+This section covers the following key points, illustrated with an example:
+
+\begin{itemize}
+	\item The issues posed by the deletion of missing data, called ``complete case analysis''.
+	\item A brief introduction to multiple imputation.
+	\item The application of clustering with multiple imputation.
+	\item The scenarios in which multiple imputation is applicable.
+\end{itemize}
+
+
+To illustrate these concepts, we use a synthetic dataset composed of categorical sequence data measured across ten time points, with each measurement coded as either ``state A'' or ``state B.''
+
+\begin{figure}[!h]
+	\centering
+	\includegraphics[width=\linewidth]{Plots/dataset.png}
+	\caption{Dataset composed of 10 trajectories used for illustration.}
+	\label{dataset}
+\end{figure}
+
+This dataset includes missing values, presenting a challenge for analysis, since many statistical methods, such as regression and cluster analysis, are designed to operate on complete datasets.
+
+\subsubsection*{Complete case analysis}
+The straightforward approach, often the default in many software packages such as \fct{lm} and \fct{glm} in \proglang{R} for linear and logistic regression, respectively, is to discard observations with missing values. This method is known as complete case analysis.
+
+This approach has two main issues \citep{Little1995}. First, it reduces the amount of information available. In the example, only 6 trajectories remain in the dataset (Figure \ref{cca}). Even if a trajectory has only one missing value, such as the first trajectory, it is completely removed from the analysis. This can reduce statistical power and hinder the detection of effects.
+
+\begin{figure}[!h]
+	\centering
+	\includegraphics[width=\linewidth]{Plots/cca.png}
+	\caption{Remaining trajectories after a complete case analysis.}
+	\label{cca}
+\end{figure}
+
+The second problem of missing data relates to the reasons for non-response, which are often specific to certain individuals or circumstances. For example, individuals in vulnerable situations such as unemployment, migrant background or poor health are more likely to drop out of longitudinal studies \citep{Rothenbuhler}. As a result, these vulnerable situations may be under-represented in the subsample, leading to potential biases in various statistical measures of vulnerability. Similarly, trajectories with higher transition rates are more prone to missing values \citep{Muller}. This behaviour is observed in trajectories 3 and 4 of the example.
+
+\subsubsection*{Imputation}
+Imputation is based on the idea of replacing missing values with some reasonable values. This is appealing because it would result in a dataset with no more missing values. However, the problem with imputing missing values once, which is called ``single imputation,'' is that it treats missing values as if they were observed and overlooks the inherent uncertainty associated with missing data. To address this limitation, multiple imputation is used. As illustrated in Figure \ref{multipleImp}, the process involves three main steps:
+
+\begin{enumerate}
+	\item \textbf{Creation of completed datasets:} Missing values are replaced with values multiple times, generating several complete datasets. 
+	
+	\item \textbf{Statistical analysis:} The statistical analysis that would have been applied if the data had been complete is usually carried out independently on each of the completed datasets.
+	
+	\item \textbf{Combination of results:} In the final step, the results of the statistical analysis computed on each completed dataset are combined into a single result. \citet{Rubin1987} formulated rules for this.
+\end{enumerate}
+
+
+For example, we might be interested in the relative risk of moving to state B versus staying in state A while in state A. After multiple imputations, we would estimate this relative risk and its variance on each of the completed datasets. We would then combine these estimates and their variance into a single relative risk and its variance. The calculated variance would typically be useful in testing the hypothesis of whether or not this risk is significantly different from 1.
+
+\begin{figure}[!h]
+	\centering
+	\includegraphics[width=\linewidth]{Plots/MI.pdf}
+	\caption{Illustration of three steps of a multiple imputation. The missing data are imputed several times, yielding $M$ completed datasets. The estimated parameter and its variance is computed. These estimated parameters are then pooled in a single estimate and its variance.}
+	\label{multipleImp}
+\end{figure}
+
+\subsubsection*{Clustering and multiple imputation}
+While the standard multiple imputation framework is well suited to most statistical analyses, clustering presents unique challenges. Unlike parameter estimation, clustering involves grouping observations on the basis of similarity, which complicates the pooling of results across multiple imputed datasets. Even small variations in the data can lead to significant differences in the resulting clusters and their number.
+
+Several approaches have been proposed to overcome this challenge. One method, proposed by \citet{Halpin2012}, involves stacking all completed datasets together and clustering this stacked dataset. Observations are then assigned to clusters based on their frequency among the imputed replications.
+
+Alternatively, consensus clustering methods attempt to reconcile differences between clusterings obtained from multiple imputed datasets. For example, \citet{Basagana2013} suggests first determining the number of clusters by identifying the most frequently observed count across imputed datasets and then assigning each sequence to the cluster to which it most frequently belongs, while \citet{Faucheux} suggests identifying common clustering patterns across the multiple clusterings generated to build a single clustering.
+
+In our illustrative example, we use the stacking method. However, consensus clustering is a promising alternative that may address some of the limitations of the stacking approach. Further research is required to fully evaluate the most appropriate alternative.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsubsection*{Scenarios where multiple imputation is applicable}
+Not all missing data are equivalent. At least two distinctions can be made. First, it is important to differentiate between structural missing data and genuine missing data. Second, the underlying mechanisms driving the missingness must be considered.
+
+Structural missing data refer to values that are supposed to be missing and can be further categorized into two categories: cases where no value is meaningful and cases where the value can be determined with certainty. An example of the first category is a missing occupation for individuals who are still in education. An example of the second is individuals who have died and have missing values for subsequent health states. In such cases, it is appropriate to predefine a specific state, such as "dead," for these missing values.
+
+The suitability of a method for dealing with missing data depends on the underlying mechanism causing the missing data. \citet{Rubin1976} identified three mechanisms of missing data:
+\begin{itemize}
+	\item Missing Completely at Random (MCAR): Data are missing entirely by chance. For example, individuals forgetting to report their situation for no apparent reason.
+	
+	\item Missing At Random (MAR): Data are missing for reasons explained by observed variables. For instance, if women are more likely to have missing data, or if the probability of missing at time t depends on the state observed at time t-1 (e.g., unemployment at time t-1 increases the likelihood of missing data at t).
+	
+	\item Missing Not at Random (MNAR): Data are missing due to reasons related to the missing value itself, such as systematically omitting periods of unemployment.
+\end{itemize}
+
+Multiple imputation produces unbiased results under MCAR and MAR conditions \citep{Little1992}. However, addressing MNAR data remains challenging, as most methods, including multiple imputation, are prone to bias in such cases.
+
+Since these mechanisms depend on unobserved data, identifying the mechanism with certainty is generally impossible. MCAR is rarely a realistic assumption, and real-world datasets often involve a mix of MAR and MNAR mechanisms. Research by \citet{Gomer2023} suggests that multiple imputation can still be a viable approach in such scenarios.
+
+When MNAR mechanisms are suspected, a common strategy, as described by \citet{vanBuuren}, is to include additional explanatory variables in the imputation models to account for relationships that might explain the missingness. Another approach is sensitivity analysis, which assesses how results change under different MNAR assumptions.
+
+\section{Description of the imputation algorithms}
+\label{sec:algo}
+As discussed in the previous section, multiple imputation begins with the imputation process itself. The \pkg{seqimpute} package implements two methods specifically designed for categorical sequence data, where missing values often appear as gaps rather than isolated time points.
+
+This section provides an overview of the principles underlying the two algorithms—MICT and MICT-timing. Readers seeking detailed explanations can refer to \citet{Halpin2012} for MICT and to \citet{Emery} for MICT-timing.
+
+The MICT algorithm introduced by \citet{Halpin2012} handles gaps by iteratively imputing missing values from their edges. However, it assumes homogeneous transition probabilities throughout a trajectory, which may not hold in real-world data. For example, in life course analysis, transition rates between education and work vary over time: transitions to work are rare in childhood but common between the ages of 16 and 30. This can lead to implausible imputations, such as transitions to work in childhood. The MICT-timing algorithm was developed to account for such temporal variations.
+
+We first describe the MICT algorithm, before outlining what distinguishes MICT-timing from MICT.
+
+\subsubsection*{MICT}
+We describe the main features of the MICT algorithm. We first consider the order in which missing values are imputed, starting at the dataset level, before focusing on individual gaps. Then, we examine the variables included in the imputation model for a given missing value and consider the construction of the data used to fit an imputation model. Next, we discuss how an imputed value is concretely obtained from the imputation model. Finally, we discuss the special considerations required for handling beginning and ending gaps due to their unique edge structure, and outline the process of creating multiple complete datasets.
+
+\begin{enumerate}
+	\item \textbf{Order of imputation}
+	
+	The order in which the missing data are imputed is shown in Figure \ref{order-MICT}. Let's highlight two characteristics. First, the missing gaps are imputed recursively from the edges. This approach serves two purposes: missing data near the edges of the gap are generally easier to impute because they are adjacent to observations, and by imputing from the edges inwards we maintain longitudinal consistency between the imputed values. Then only the position of a missing value in a gap is important, not its position in the sequence. For example, both missing values labelled ``2'' are imputed at the same time by the same imputation model, even though they do not occur at the same time, because once ``1'' is imputed, they are both the last value of a gap of length 2. 
+	
+	\begin{figure}[h!]
+		\centering
+		\includegraphics[width=0.6\linewidth]{Plots/order-MICT-crop.pdf} 
+		\caption{Order of the imputation for the MICT algorithm.}
+		\label{order-MICT}
+	\end{figure}
+	
+	\item \textbf{Information from the trajectory used to determine an imputed value}
+	
+	Let's focus on the imputation of the first missing value of the third sequences:
+	
+	\includegraphics[scale=0.4]{Plots/plot1cut.png}
+	
+	The goal is to ensure consistency between the imputed values and the other observed values within the trajectory. Therefore, at least the preceding and subsequent observations around a gap are integrated in the determination of an imputed value. For the first missing value of sequence 3, the individual was in state B (indicated by the blue arrow) just before the gap and in state A three time points after (indicated by the green arrow):
+	
+	\includegraphics[scale=0.4]{Plots/plot2cut.png}
+	
+	The values immediately before and after a gap represent the minimum information to be included in the prediction model. However, additional predictors, both before and after the gap, may be included if relevant. In addition, covariates related to the missing data mechanism or variables intended for subsequent statistical analysis should also be included. Section \ref{sec:guide} provides guidelines for selecting the appropriate information to include in the imputation model.
+	
+	\item \textbf{Build the training dataset}
+	
+	To construct the data used to fit the imputation model for the first missing value in sequence 3, the algorithm identifies instances where both the previous state and the state three time points later are observed.
+	
+	For example, in the case of the first sequence, the second time point is the first occurrence where both the preceding state and the state three time points after are observed:
+	\begin{center}
+		\includegraphics[scale=0.52]{Plots/image1.png} 
+	\end{center}
+	
+	
+	The time 3 has a missing value three time points later and is hence not included:
+	\begin{center}
+		\includegraphics[scale=0.52]{Plots/image2.png} 
+	\end{center}
+	
+	The fourth time point is also included:
+	\begin{center}
+		\includegraphics[scale=0.52]{Plots/image2-5.png} 
+	\end{center}
+	
+	and finally the fifth one:
+	
+	\begin{center}
+		\hspace*{0.6cm}
+		\includegraphics[scale=0.52]{Plots/image3.png} 
+	\end{center}
+	
+	The sixth time point is missing and is therefore not included, while subsequent time points have no value that occurs three time points later. In summary, the first sequence contains three observed patterns similar to the one we want to impute.
+	
+	This process is applied to all sequences in the dataset, resulting in 44 observations used to fit the imputation model.
+	
+	
+	\item \textbf{Determine an imputed value}
+	
+	A logistic model, or a multinomial model for cases with more than two categories, is then fitted to these data. This model is used to determine the probabilities of belonging to state "A" or "B." Finally, a value is assigned to the missing observation based on these probabilities. We examine each step in details.
+	\begin{enumerate}
+		\item \textit{Fitting the logistic model} A logistic model is fitted to the data extracted in point (a). The dependent variable is \textit{t} and the two independent variables are \textit{t-1} and \textit{t+3}.
+		
+		\item \textit{Probability of belonging to each state} Given that the previous state for the missing value to be imputed was "A" and that three time points later there is a state "B", the probabilities of being in state "A" or "B" are determined.
+		
+		\item \textit{Imputed value} A value is drawn at random based on the derived probabilities.
+		
+	\end{enumerate}
+	
+	\item \textbf{Starting and ending gaps}
+	
+	Because these gaps have only one edge, imputations start from the far right to the left for start gaps and from the far left to the right for end gaps. 
+	
+	For example, the imputation order for the end gap in the eighth sequence is:
+	\begin{center}
+		\includegraphics[scale=0.4]{Plots/s8cut.png} 
+	\end{center}
+	
+	Then, in a similar way to the imputation of middle gaps, the algorithm looks in each sequence for each time that an observed state also has the previously observed state. A logistic or multinomial model is fitted, probabilities are estimated and an imputed value is drawn.
+	
+	\item \textbf{Multiple imputed datasets} 
+	
+	Imputed values are drawn based on probabilities computed from logistic or multinomial models, which introduces a random element into the imputation process. As a result, the imputation process is repeated several times to generate multiple imputed records. Choosing the appropriate number of imputed datasets is discussed in Section \ref{sec:guide}.
+\end{enumerate}
+
+
+\subsubsection*{MICT-timing}
+The MICT-timing algorithm is an extension of the MICT algorithm designed to address a key limitation of the latter: its assumption that position in the trajectory is irrelevant. We go back to the different points that were described previously for the MICT algorithm in order to highlight the differences between MICT-timing and MICT.
+
+\begin{enumerate}
+	\item \textbf{Order of imputation}
+	
+	A key difference between the MICT and MICT-timing algorithms is illustrated in Figure \ref{order}, which shows the order in which missing values are imputed. We have seen previously that the third missing value in sequence 3 and the second missing value in sequence 4 (both labelled "2") are imputed at the same stage and by the same imputation model by the MICT algorithm. For MICT, it does not matter that they occur at different times. In contrast, the MICT-timing algorithm differentiates between these values, and impute them with two different models.
+	
+	\begin{figure}[h!]
+		\includegraphics[width=0.5\linewidth]{Plots/order-MICT-crop.pdf} 
+		\includegraphics[width=0.5\linewidth]{Plots/order-MICT-timing-crop.pdf} 
+		\caption{Comparison of the order of the imputation for the MICT algorithm (left) and the order of the imputation of the MICT-timing algorithm (right).}
+		\label{order}
+	\end{figure}
+	
+	
+	\item \textbf{Information from the trajectory used to determine an imputed}
+	
+	Similarly to MICT, at least the time points preceeding and following the gaps are included in the prediction model.
+	
+	\item \textbf{Build the training dataset}
+	
+	As noted above, the MICT algorithm identifies similar configurations in all sequences, regardless of their position, and fits a model using these data. In contrast, the MICT-timing algorithm only considers observations that occur at the same time in other sequences. Thus, unlike MICT, each sequence contributes at most one observation. 
+	
+	If we focus on the imputation of the first missing value of sequence 3, any other sequence that does not have missing time points 2, 3 and 6 is included, which is the case for every sequence except the first:
+	\begin{center}
+		\includegraphics[scale=0.55]{Plots/fit-MICT-timing.pdf} 
+	\end{center}
+	Note that in this case the imputation is based on eight observations, whereas with the MICT algorithm it was 44. Since the performance of the logistic and multinomial models depends on the sample size, it may be necessary to include not only the observations that occur at the same time, but also the previous and subsequent observations if there are very few sequences in the dataset. This is discussed in Section \ref{sec:guide}.
+	
+	
+	\item \textbf{Determine an imputed value}
+	
+	This part are similar to MICT. A logistic (or multinomial if there are more than two categories) model is fitted, probability are estimated, and an imputed value is drawn.
+	
+	\item \textbf{Starting and ending gaps} 
+	
+	The order of imputation of starting and ending gaps is the same as for MICT, but as for middle gaps only consider the observations that occur at the same time points in other sequences to fit the logistic or multinomial imputation model.
+	
+	\item \textbf{Creation of multiple imputed datasets} 
+	
+	As with MICT, the whole process of imputation is repeated several times to produce multiple complete datasets.
+	
+\end{enumerate}
+
+\section{Sample application}
+\label{sec:sample}
+The illustrative analysis detailed in section \ref{sec:steps} aims to cluster the dataset and use the resulting clustering as a dependent variable in a regression analysis. This is a typical application in sequence analysis \citep{PiccarretaHolistic}.
+
+We assume that the reader is familiar with the \pkg{TraMineR} package \citep{GabadinhoTraMineR}, a widely used tool for analysing sequence data. Importantly, many of the visualisation features in \pkg{seqimpute} extend and build upon the capabilities of \pkg{TraMineR}.
+
+We use a dataset tracking the transition from education to employment within a cohort in Northern Ireland \citep{Mcvicar2002}. This dataset, which is available in the \pkg{TraMineR} package, originally has no missing data. We deliberately introduce missing data to illustrate MICT and MICT-timing. 
+
+We begin by retrieving the dataset from the \pkg{TraMineR} package and creating a state sequence object, which is the format of sequences in \pkg{TraMineR}. We then introduce missing data using a dedicated function in the \pkg{seqimpute} package. Finally, we briefly discuss the limitations of relying solely on complete case analysis as a strategy for dealing with missing data. The statistical analysis itself is carried out in Section \ref{sec:steps}.
+
+\subsubsection*{1. Preparation of the dataset}
+We load the \pkg{TraMineR} package and then fetch the data set named \code{mvad}. Using the \fct{seqdef} function from the \pkg{TraMineR} package, we create a state sequence object by specifying the columns containing the trajectories with the \code{var} argument, defining the possible states (the \code{alphabet}), and setting the interval between tick marks and labels in the plots with the \code{xtstep} argument.
+
+<<preliminary, echo=FALSE>>=
+library("knitr")
+options(prompt = "R> ", continue = "+  ", width = 70, useFancyQuotes = FALSE)
+render_sweave()
+@
+
+<<mvadseq, warning=FALSE, message=FALSE>>=
+library("TraMineR")
+data(mvad)
+mvad.alphab <- c("employment", "FE", "HE", "joblessness", "school", "training")
+mvadseq <- seqdef(mvad, var=17:86, alphabet=mvad.alphab, xtstep=6)
+@
+
+To get an initial overview of the trajectories, we use the state distribution plot built with the \fct{seqdplot} function of the \pkg{TraMineR} package. This visualization provides the distribution of states at each time point.
+
+<<mvad-seqdplot, echo=TRUE, fig.show='hide'>>=
+seqdplot(mvadseq, border=NA)
+@
+
+%
+\begin{figure}[tb]
+\begin{center}
+\setkeys{Gin}{width=.6\textwidth}
+<<label=fig_mvad-seqdplot, echo=FALSE, fig.width=7, fig.height=7, out.width='.7\\textwidth'>>=
+<<mvad-seqdplot>>
+@
+\caption{State distribution plot of the mvad dataset.}
+\label{fg_mvad-seqdplot}
+\end{center}
+\end{figure}
+
+We see in Figure \ref{fg_mvad-seqdplot} that at the beginning of the trajectories, the majority of individuals are engaged in education (school, training or further education), while towards the end of the trajectories, a large proportion have moved into employment. In particular, 13.1\% of individuals are unemployed at the end of the trajectories.
+
+\subsubsection*{3. Generation of missing data}
+We introduce small gaps of missing data into the \code{mvad} dataset, especially during periods of unemployment, reflecting real-world situations. 
+
+To achieve this, we load the \pkg{seqimpute} package and use the \fct{seqaddNA} function to simulate missing values. This function generates missing data following a Markovian logic, where the \code{states.high} argument specifies the states with a higher probability of the subsequent state being missing. In this example, we use the default parameters of the function. A detailed discussion of the \fct{seqaddNA} function is provided in Section 8.
+
+As the process of simulation implies some randomness, we set a seed for reproducibility. Moreover, the \code{var} argument is used to specify the columns of the dataset that contain the trajectories.
+<<simulation-missings>>=
+library("seqimpute")
+set.seed(2)
+mvad.miss <- seqaddNA(mvad, var=17:86, states.high="joblessness")
+@
+
+We have generated small gaps of missing data, which are more likely to occur after unemployment. In the next section, we examine these missing values in more detail.
+
+\subsubsection*{4. Limitations of complete case analysis}
+To illustrate the limitations of complete case analysis, we examine the state distribution at each time point of the complete trajectories. The \fct{seqcomplete} function allows to extract all the trajectories without missing data:
+
+<<cca, warning=FALSE, message=FALSE>>=
+mvadseq.miss <- seqdef(mvad.miss, 17:86, xtstep=6, alphabet=mvad.alphab, 
+right=NA)
+mvadseq.cca <- seqcomplete(mvadseq.miss)
+@
+
+We look at the state distribution plot of the complete trajectories
+<<cca-seqdplot, echo=TRUE, fig.show='hide'>>=
+seqdplot(mvadseq.cca, border=NA)
+@
+
+\begin{figure}[tb]
+	\begin{center}
+		\setkeys{Gin}{width=.6\textwidth}
+		<<label=fig_cca-seqdplot, echo=FALSE, fig.width=7, fig.height=7, out.width='.7\\textwidth'>>=
+		<<cca-seqdplot>>
+		@
+		\caption{State distribution plot of the complete trajectories.}
+		\label{fg_cca-seqdplot}
+	\end{center}
+\end{figure}
+
+We observe in Figure \ref{fg_cca-seqdplot} that unemployment is underrepresented in the trajectories with no missing data. For example, we observe 3.1\% of jobless situations at the last time point, while it is 13.1\% in the original dataset. Although these differences are clearly amplified by the way we generated missing values, they illustrate the kind of results that can emerge from a complete case analysis.
+
+\section{Step-by-step analysis}
+\label{sec:steps}
+In this section, we illustrate the steps taken to cluster data, where missing data are treated by multiple imputation using the MICT algorithm, and then used in a subsequent regression analysis. We examine the social reproduction of unemployment.
+
+The four main steps we follow, along with their objectives, are as follows:
+\begin{enumerate}
+	\item \textbf{Description and visualization of missing data} 
+	
+The goal here is multifaceted. First, we want to assess the magnitude of the missing data problem, focusing in particular on the proportion of missing data, its patterns, and the mechanism governing missing data. In addition, this step helps to identify values that should not be imputed, either because these values could be known with certainty or because no value makes sense.
+	\item \textbf{Imputation}
+	
+This is the first step in a multiple imputation process. We create multiple complete datasets, using MICT algorithm as the imputation method.
+	
+	\item \textbf{Typology creation}
+	
+		We extract a typology of typical patterns of transition from education to employment from the several complete datasets built in the previous step. In addition, we aim to identify the cluster that captures trajectories leading to unemployment.
+	
+	\item \textbf{Regression}
+	
+		In this step, we use logistic regression to study the social reproduction of unemployment. Specifically, the dependent variable is the cluster membership that captures trajectories leading to unemployment, while the father's unemployment serves as the independent variable.
+	\end{enumerate}
+	
+	We provide detailed explanations of how to carry out each of these steps.
+
+\subsection{Description and visualization of missing data}
+\label{sec:visu}
+We begin by demonstrating the use of various visual tools available in the \pkg{TraMineR} package, as well as those developed for \pkg{seqimpute}, to assess the prevalence of the missing data problem and to identify values that are best left unimputed. We then discuss specific methods for assessing the mechanisms underlying missing data, which is critical for evaluating the impact of any data handling method on the resulting analyses.
+
+To get an initial overview of the proportion of missing data across the trajectories, we look at the state 
+distribution at each time point:
+
+<<miss-seqdplot, echo=TRUE, fig.show='hide'>>=
+seqdplot(mvadseq.miss, border=NA, with.missing=TRUE)
+@
+
+\begin{figure}[tb]
+	\begin{center}
+		\setkeys{Gin}{width=.6\textwidth}
+		<<label=fig_miss-seqdplot, echo=FALSE, fig.width=8.5, fig.height=8.5, out.width='.7\\textwidth'>>=
+		<<miss-seqdplot>>
+		@
+		\caption{State distribution plot of the trajectories with simulated missing values.}
+		\label{fg_miss-seqdplot}
+	\end{center}
+\end{figure}
+
+We observe in Figure \ref{fg_miss-seqdplot} that missing data increases slightly over time, but the proportion of missing values remains below 5\% at each time point.
+
+Some visualization tools are provided in the \pkg{seqimpute} package to better examine the patterns of missing data. These plotting functions are based on the \fct{seqplot} function from the \pkg{TraMineR} package.
+
+To display all patterns of missing data among the trajectories, one can use the \fct{seqmissIplot} function. It is
+based on the \fct{seqIplot} function of \pkg{TraMineR}. With \fct{seqmissIplot},
+the trajectories are shown with horizontally stacked lines indicating whether states are missing over successive times.
+
+<<seqmissIplot, echo=TRUE, fig.show='hide'>>=
+seqmissIplot(mvadseq.miss, border=NA)
+@
+
+\begin{figure}[tb]
+	\begin{center}
+		\setkeys{Gin}{width=.6\textwidth}
+		<<label=fig_seqmissIplot, echo=FALSE, fig.width=7, fig.height=7,out.width='.7\\textwidth'>>=
+		<<seqmissIplot>>
+		@
+		\caption{Patterns of missing data among the trajectories. Each line
+		of the plot corresponds to a sequence of the dataset.}
+		\label{fg_seqmissIplot}
+	\end{center}
+\end{figure}
+
+
+This plot, displayed in Figure \ref{fg_seqmissIplot}, highlights that missing data tend to occur in the form of very short gaps. 
+
+\fct{seqmissIplot} also facilitates a closer examination of late entry and attrition patterns, thanks to its \code{sortv} argument. For example, by setting \code{sortv="from.end"}, the trajectories are organized according to when the last missing value occurs.
+
+
+<<seqmissIplot-fromend, echo=TRUE, fig.show='hide'>>=
+seqmissIplot(mvadseq.miss, sortv="from.end")
+@
+
+\begin{figure}[tb]
+	\begin{center}
+		\setkeys{Gin}{width=.6\textwidth}
+		<<label=fig_seqmissIplot-fromend, echo=FALSE, fig.width=7, fig.height=7,out.width='.7\\textwidth'>>=
+		<<seqmissIplot-fromend>>
+		@
+		\caption{Patterns of missing data among the trajectories, sorted by the last occurrence of a missing value.}
+		\label{fg_seqmissIplot-fromend}
+	\end{center}
+\end{figure}
+
+
+In this example (Figure \ref{fg_seqmissIplot-fromend}), we do not observe anything systematic in terms of attrition. Patterns such as attrition need careful consideration. For example, in health trajectories, patterns of attrition may signal the death of an individual, making imputation inappropriate. Such cases need to be addressed before imputations are considered.
+
+The \fct{seqmissfplot} shows the most frequent overall patterns of missing data within a sequence:
+
+<<seqmissfplot, echo=TRUE, fig.show='hide'>>=
+seqmissfplot(mvadseq.miss, border=NA)
+@
+
+\begin{figure}[tb]
+	\begin{center}
+		\setkeys{Gin}{width=.6\textwidth}
+		<<label=fig_seqmissfplot, echo=FALSE, fig.width=7, fig.height=7,out.width='.7\\textwidth'>>=
+		<<seqmissfplot>>
+		@
+		\caption{Ten most frequent overall patterns of missing data among the sequences. These ten most frequent patterns are represented by stacked horizontal lines of their consecutive states, the width of the line being proportional to the proportion of sequences it represents.}
+		\label{fg_seqmissfplot}
+	\end{center}
+\end{figure}
+
+By default \fct{seqmissfplot} shows the ten most frequent patterns of missing data. This can be modified with the
+\code{idxs} argument. We observe in Figure \ref{fg_seqmissfplot} that the most common pattern is to have no missing value. This pattern makes it difficult to see the plot. Therefore, we can have a clearer view by displaying only trajectories with at least one missing value by setting the \code{with.complete} argument to \code{FALSE}.
+
+<<seqmissfplot-nocomplete, echo=TRUE, fig.show='hide'>>=
+seqmissfplot(mvadseq.miss, with.complete=FALSE, border=NA)
+@
+
+\begin{figure}[tb]
+	\begin{center}
+		\setkeys{Gin}{width=.6\textwidth}
+		<<label=fig_seqmissfplot-nocomplete, echo=FALSE, fig.width=7, fig.height=7,out.width='.7\\textwidth'>>=
+		<<seqmissfplot-nocomplete>>
+		@
+		\caption{Ten most frequent patterns of missing data within the sequences, excluding complete trajectories.}
+		\label{fg_seqmissfplot-complete}
+	\end{center}
+\end{figure}
+
+Looking at Figure \ref{fg_seqmissfplot-complete}, we do not observe any systematic patterns of missing data, since the 10 most frequent patterns of missing data account for only 10\% of all patterns.
+
+Frequent patterns of missing data should be considered. For example, when considering educational trajectories, it may appear that missing data occur systematically in the summer months when individuals are in transition between two situations. Therefore, it may be appropriate to treat these cases systematically before considering imputations.
+
+The amount of missing data and the patterns are a first indicator to gauge how pervasive the issue of missing data is, but it is not enough. Along this line, the concept of mechanism of missing data is crucial. 
+
+A tool available in the package that helps to grasp the mechanism is the \fct{seqmissimplic} function, which is based on the \fct{seqimplic} function of the \pkg{TraMineRextras} package \citep{TraMineRextras}. It allows to display the states that better characterize, at each time point, sequences with missing data vs. sequences without missing data. 
+
+We first compute the results:
+<<seqmissimplic, warning=FALSE, message=FALSE>>=
+imp <- seqmissimplic(mvadseq.miss)
+@
+
+Then, we plot the typical states:
+<<seqmissimplic-plot, echo=TRUE, fig.show='hide'>>=
+plot(imp)
+@
+
+\begin{figure}[tb]
+	\begin{center}
+		\setkeys{Gin}{width=.6\textwidth}
+		<<label=fig_seqmissimplic-plot, echo=FALSE, fig.width=9, fig.height=7,out.width='.99\\textwidth'>>=
+		<<seqmissimplic-plot>>
+		@
+		\caption{States that better characterise, at each time point, sequences with at least one missing value (left) and sequences with no missing data (right).}
+		\label{fg_seqmissimplic-plot}
+	\end{center}
+\end{figure}
+
+In the left panel of Figure \ref{fg_seqmissimplic-plot}, we observe that trajectories with at least one missing value are characterized by unemployment at almost every time point. Indeed, we observe that the implication statistic for the unemployment situation, shown in yellow, is above, and thus outside, the 95\% confidence interval. On the other hand, the observed trajectories are characterized (right panel) by employment in the later time points, as we see that the value of the implication statistic is outside the 95\% confidence interval. This allows us to highlight that the mechanism is not MCAR and that there tends to be an overrepresentation of employment in complete trajectories and, conversely, an overrepresentation of unemployment in trajectories with missing values. 
+
+\subsection{Multiple imputation}
+\label{sec:mi}
+The second step is to handle missing data through multiple imputation. We describe in detail how this step can be carried out with this package and, once imputation has been carried out, we briefly examine the imputed datasets.
+
+During the implementation of this process, several decisions need to be made regarding the specification of the imputation model. For illustrative purposes, we use a simplified imputation method with default arguments. However, this model may prove to be too simplistic for real applications. In section \ref{sec:guide} we provide comprehensive guidelines on how to choose an appropriate imputation model. In particular, we focus on the number of previous and subsequent time points to include, the number of multiple imputations, and the covariates to include. In addition, in section \ref{sec:others} we discuss additional functionalities: parallel computing to speed up computations and the use of random forest imputation models instead of multinomial models.
+
+The imputation process introduces an element of randomness. Running the imputation process multiple times will result in different imputed datasets and consequently may lead to different clusterings. This variability is particularly pronounced when a small number of imputations are used, as in this example. In order to reproduce the same results presented here, a seed value should be set before starting the imputation process. 
+
+We set a seed value before generating complete datasets with the \fct{seqimpute} function. The argument \code{var} specifies which columns of the datasets contain the trajectories to be imputed (here 17 to 86), the argument \code{np} specifies how many previous observations to include in the imputation models, \code{nf} specifies how many subsequent observations to include, and the argument \code{m} specifies the number of multiple imputations. 
+
+
+<<imputations, message=FALSE, results='hide'>>=
+set.seed(1)
+imputed <- seqimpute(mvad.miss, var=17:86, np=1, nf=1, m=2)
+@
+
+\subsection{Typology creation}
+\label{sec:typ}
+The next step is to derive the clustering from these multiple imputed datasets. In this document, we follow the strategy of stacking all the imputed datasets, then identifying the clustering, and finally redistributing it among the imputed datasets in order to apply the regression analysis to each imputed dataset. This is not the only strategy available. Consensus clustering may be a very promising approach in this respect.
+
+The clustering of sequences follows three steps: first, a dissimilarity is computed between each pair of sequences, then different groupings are computed with a clustering algorithm based on these dissimilarities, and finally the best one is selected based on cluster quality indices. For this illustration we follow the procedure of the \pkg{WeightedCluster} vignette \citep{StuderWeighted}. The pairwise dissimilarities are computed using Hamming distance (see \cite{StuderDiss} for recommendations on choosing dissimilarity measures), hierarchical clustering with Ward's linkage is applied, and the best clustering is selected based on ASWw, HG, PBC and HC. 
+
+\begin{enumerate}
+	\item The \fct{fromseqimp} function allow to transform the \code{seqimp} object obtained with the \fct{seqimpute} function into various formats. In particular, by stating \code{format} to \code{"stacked"}, we obtain a dataset where the imputed datasets are stacked vertically, which is the form needed to apply Halpin's clustering strategy.
+	
+	<<stack-imputations, message=FALSE>>=
+	stackedimp <- fromseqimp(imputed, format="stacked")
+	stackedimpseq <- seqdef(stackedimp, xtstep=6)
+	@
+	
+	\item The dissimilarity matrix is computed using the Hamming distance. 
+	
+	<<cdistance, message=FALSE>>=
+	ham <- seqdist(stackedimpseq, method = "HAM")
+	@
+	
+	\item The hierarchical clustering with Ward linkage is computed.
+	<<clustering, message=FALSE>>=
+	wardCluster <- hclust(as.dist(ham), method="ward.D")
+	
+	@
+	
+	\item The partition is chosen with the help of clustering quality measures, which can be computed with the \pkg{WeightedCluster} library:
+	
+	<<cqi, message=FALSE, warning=FALSE>>=
+	library("WeightedCluster")
+	wardRange <- as.clustrange(wardCluster, diss=ham, ncluster=15)
+	@
+	
+	The evolution of some of these cluster quality measures by group can be plotted:
+	
+	<<cqi-plot, echo=TRUE, fig.show='hide'>>=
+	plot(wardRange, stat=c("ASWw", "HG", "PBC", "HC"))
+	@
+	
+	\begin{figure}[tb]
+		\begin{center}
+			\setkeys{Gin}{width=.6\textwidth}
+			<<label=fig_cqi-plot, echo=FALSE, fig.width=7, fig.height=7,out.width='.65\\textwidth'>>=
+			<<cqi-plot>>
+			@
+			\caption{States that better characterise, at each time point, sequences with at least one missing value (left) and sequences with no missing data (right).}
+			\label{fg_cqi-plot}
+		\end{center}
+	\end{figure}
+	
+	We observe in Figure \ref{fg_cqi-plot} that the clustering in eight groups is a local extremum for each of the clustering quality measures. 
+	
+	\item After performing hierarchical clustering and selecting eight clusters, we proceed to assign these clusters to the \code{seqimp} object with the \fct{addcluster} function. 
+	
+	The resulting cluster labels are stored as an additional column called \code{cluster} within the imputed datasets, setting the stage for the subsequent regression analysis.
+	<<addcluster>>=
+	imputed <- addcluster(imputed, clustering=wardRange$clustering$cluster8)
+	@
+\end{enumerate}
+
+Now that the clustering has been determined, we visualize the eight groups by plotting their transversal state distribution
+<<clusters-plot, echo=TRUE, fig.show='hide'>>=
+seqdplot(stackedimpseq, group =  wardRange$clustering$cluster8, 
+border = NA, with.legend=FALSE)
+@
+
+\begin{figure}[tb]
+	\begin{center}
+		\setkeys{Gin}{width=.6\textwidth}
+		<<label=fig_clusters-plot, echo=FALSE, fig.width=7, fig.height=7, out.width='.85\\textwidth'>>=
+		<<clusters-plot>>
+		@
+		\caption{Transversal state distribution of the eight groups.}
+		\label{fg_clusters-plot}
+	\end{center}
+\end{figure}
+
+From Figure \ref{fg_clusters-plot}, we can see that the unemployment trajectories are mostly captured by the sixth group. We also observe some trajectories with unemployment in other groups, such as the fourth, but focus only on the sixth group for the sake of illustration.
+
+
+\subsection{Regression analysis on clustered trajectories}
+\label{sec:reg}
+The final step in the analysis is to run the regression analysis separately on each completed dataset and pool the results.
+
+The sixth cluster is the one that mostly captures trajectories with spells of unemployment. Therefore, we apply a logistic regression where the dependent variable is the membership to this cluster and the independent variable is father's unemployment. We also use sex as a control variable.
+
+We use the \pkg{mice} package, which provides many tools for dealing with multiple imputed datasets. We first transform the imputed datasets into an object that can be manipulated by \pkg{mice}. 
+
+\begin{enumerate}
+	
+	\item We transform the object containing the imputed datasets with the \fct{fromseqimp} function.
+	<<mids, message=FALSE, warning=FALSE>>=
+	imputed.mids <- fromseqimp(imputed, format="mids")
+	@
+	
+	\item We apply a logistic regression where the dependent variable indicates membership in the sixth cluster, which represents trajectories involving unemployment. The independent variables are sex and whether the respondent's father was unemployment.
+	
+	To fit the regression models within the multiple imputation framework, we use the \fct{with} function of the \pkg{mice} \citep{mice2011} package.
+	<<fit-regression, message=FALSE, warning=FALSE>>=
+	library("mice")
+	fit <- with(imputed.mids, glm(I(cluster == 6) ~ mvad$male + mvad$funemp, 
+	family = binomial))
+	@
+	\item To pool the results of the regression models, we use the \fct{pool} function, also coming from the \pkg{mice} package.
+	<<pool>>= 
+	summary(pool(fit))
+	@
+	The interpretation of the regression model is similar as with standard regression.
+	
+\end{enumerate}
+Therefore, individuals who had an unemployed father are more likely to belong to the cluster that captures unemployment trajectories. 
+
+Of course, this analysis is only an illustration of the functions in this package. It is oversimplified. No firm conclusions can be drawn from this analysis.
+
+
+\section{Guidelines related to the imputation model}
+\label{sec:guide}
+In the illustrative example, we used MICT with a simple imputation model for illustrative purposes. However, such a model proves too simplistic for most real-world applications. In this section, we examine four crucial decisions in selecting imputation models: choosing between MICT and MICT-timing, determining the number of prior and subsequent time points to include, considering the inclusion of covariates, and deciding on the number of imputations.
+
+\begin{enumerate}
+	\item \textbf{MICT or MICT-timing} 
+	
+	If the transitions may differ along the trajectories, MICT-timing should be used, while if this is not the case, MICT is preferred.
+	
+	For example, in the context of our example application, the majority of transitions occur during the summer months. MICT does not discriminate between summer and other months, resulting in a lack of transitions in summer and an excess of transitions in other months. Conversely, MICT-timing makes this distinction, making it more appropriate for this particular case. 
+	
+	To apply the MICT-timing algorithm with the \fct{seqimpute} function, the argument \code{timing} must be set to \code{TRUE}. Otherwise, its use is similar to the MICT algorithm. One must specify the number of previous observations (\code{np}), the number of subsequent observations (\code{nf}), and the number of imputations (\code{m}).
+	<<imputations-timing, message=FALSE, results='hide'>>=
+	imputed <- seqimpute(mvad.miss, var=17:86, np=1, nf=1, m=3,
+	timing=TRUE)
+	@
+	
+	When the number of trajectories is very small (fewer than 200, based on our experience), it can be advantageous to include not only observations from the same time point across sequences but also those from adjacent time points. This can be achieved using the \code{frame.radius} argument. For instance, setting \code{frame.radius} to 1 incorporates observations from both the preceding and following time points into the imputation models.
+
+	<<imputations-timing-radius1, message=FALSE, results='hide'>>=
+	imputed <- seqimpute(mvad.miss, var=17:86, np=1, nf=1, m=3, 
+	timing=TRUE, frame.radius=1)
+	@
+	
+		\item \textbf{Inclusion of covariates} 
+		
+	Incorporating carefully chosen covariates can enhance the quality of imputations. We elaborate on the specific covariates that should be included and the rationale behind their selection. Additionally, we  focus on the practical implementation of these covariates within the \fct{seqimpute} function. Finally, we briefly discuss some open issues related to the inclusion of covariates.
+	
+	Guidance regarding the incorporation of covariates in imputation models suggests including those that (see e.g. \citet{vanBuuren}):
+	
+	\begin{itemize}
+		\item Are subject to different trajectories. For example, career paths differ between men and women, with men often working full-time and women more likely to work part-time (see e.g. \citet{Widmer}). Failure to include the gender variable in the imputation process would result in imputed values that do not take these notable differences into account. In the sample application of this article, transitions may vary according to the type of secondary education.
+		
+		\item Potentially relate to the missing data mechanism. For example, several studies have shown that less-educated individuals are more likely to have missing values \citep[e.g.][]{Voorpostel, Muller}. 
+		
+		\item Will be considered in the subsequent statistical analysis. This allows to maintain the relations between the corresponding covariates after the imputation. In our illustrative example, we included father unemployment and sex as covariates in the statistical analysis. Hence, these variables should be incorporated into the imputation models.
+	\end{itemize}
+	
+	Covariates should be included by specifying the names of the columns in the data set that contain the covariates we want to include. We are including gender, type of secondary education, and whether the father was unemployed. These are in the columns named  \textit{male}, \textit{Grammar} and \textit{funemp}.
+	
+	<<imputations-covariates, message=FALSE, results='hide'>>=
+	imputed <- seqimpute(mvad.miss, var=17:86, np=5, nf=5, m=3, 
+	timing=TRUE, covariates=c("male","Grammar","funemp"))
+	@
+	
+	The \fct{seqimpute} function can also be provided with time-varying covariates, supplied either as a list of sequence objects (each corresponding to a time-varying covariate) or as a list of dataframes.
+	
+	Note that the \fct{seqimpute} function exclusively handles covariates without missing data.
+	
+	\item \textbf{Number of previous and subsequent predictors} 
+	
+	In the example, we relied on only one observation in the past and one in the future for the prediction. If long-term effects are suspected, it may be worth increasing the number of past and future observations included.
+	
+	<<imputations-5predictors, message=FALSE, results='hide'>>=
+	imputed <- seqimpute(mvad.miss, var=17:86, np=5, nf=5, 
+	m=3, timing=TRUE)
+	@
+	
+	\item \textbf{Number of imputations} 
+	
+	With multiple imputation, we create multiple complete datasets with no missing data. Therefore, one question is how many imputed datasets are needed. By increasing the number of imputations, we reduce the variability introduced into the statistical results. However, we may be limited by the computational burden, and the gain from a very large number of imputations may be limited.
+	
+	In practice, it is often recommended to use between 5 and 20, depending on the amount of missing data (see e.g. \citet{vanBuuren} for a discussion on the number of imputations). If the interest is in detecting small effects, it may be worth increasing the number of imputations. It is important to strike a balance between the statistical benefits and the computational constraints.
+\end{enumerate}
+\section{Other features of the imputation through seqimpute}
+\label{sec:others}
+We delve into two other features available for \fct{seqimpute}, namely the application of random forests as imputation models and parallel computing.
+
+\subsection{Random forests}
+The package offers the flexibility to employ random forests as an alternative to multinomial imputation models. Random forests are a widely used method for handling missing data in various domains \citep{ImputationTrees, ImputationsRF2, ImputationsRF3}. They possess several advantageous features such as the ability to capture non-linear relationships, interactions, and immunity to irrelevant predictors \citep{ESL}. These attributes are particularly valuable when dealing with longitudinal data, where specific state combinations can trigger long-term effects. However, despite these theoretically appealing characteristics, the suitability of random forests as imputation models still need to be demonstrated. We recommend users to apply by default multinomial imputation models unless they have specific reasons to explore alternatives. 
+
+To apply the imputation model defined in the last section with random forests imputation models, one needs to set the \code{regr} argument to \code{"rf"}
+
+
+<<imputations-rf, message=FALSE, results='hide', eval=FALSE>>=
+set.seed(2)
+imputed.rf <- seqimpute(mvad.miss, var=17:86, np=5, nf=5, m=3,
+covariates=c("male","Grammar","funemp"),regr="rf")
+@
+
+\subsection{Parallel computing}
+Multiple imputation can be computationally intensive. To address this, the \fct{seqimpute} function supports parallel computing. Since each imputation is completely independent of the others, it is possible to run each of the imputations simultaneously in parallel, providing a practical solution to reduce processing time. 
+
+To enable parallel computing, the \code{ParExec} argument must be set to \code{TRUE}, and the \code{ncores} argument specifies the number of cores to use. If the number of cores is not specified, it is set as the maximum number of available cores minus 1. For reproducibility, a seed should be provided using the \code{SetRNGSeed} argument. Note that using \code{set.seed()} alone before computations does not ensure reproducibility; the \code{SetRNGSeed} argument must be explicitly set.
+
+<<imputations-parallel, message=FALSE, results='hide', eval=FALSE>>=
+imputed.par <- seqimpute(mvad.miss,var=17:86, np=5, nf=5, m=3,
+covariates=c("male","Grammar","funemp"), ParExec = TRUE, ncores=3, 
+SetRNGSeed = 2)
+@
+
+\section{Additional Functions}
+This section outlines additional functionalities provided by the package. We focus on two functions: \fct{seqaddNA}, which simulates missing data and \fct{seqQuickLook}, which provides an overview of the number and sizes of different types of gaps in the original dataset.
+
+\subsection{Simulating missing data}
+The \fct{seqaddNA} function enables the simulation of missing data in sequences using a Markovian approach, where the probability of a value being missing depends on the preceding time point. The simulation process works as follows:
+\begin{enumerate}
+	\item The first time point of a sequence has a \code{p.low} probability of being missing.
+	\item For subsequent time points:
+	\begin{enumerate}
+		\item If the previous time point is missing, the current time point has a \code{pcont} probability of being missing.
+		\item If the previous time point is observed, the current time point has a \code{p.high} probability of being missing if the previous state belongs to the set of states specified in the \code{states.high} argument. Otherwise, the probability of being missing is \code{p.low}.
+	\end{enumerate}
+\end{enumerate}
+
+The function also includes several additional arguments to customize the simulation:
+\begin{itemize}
+	\item \code{propdata}: Specifies the proportion of trajectories on which missing data will be simulated, as a decimal between 0 and 1. By default, all sequences (\code{propdata = 1}) are selected for simulation.
+	\item \code{maxgap}: Defines the maximum length of a gap. If this limit is reached, the next time point is automatically set as observed. The default value is 3.
+	\item \code{maxprop}: Sets the maximum proportion of missing data allowed within a sequence. If this limit is exceeded, the missing data simulation is repeated for that sequence. The default value is 0.75.
+\end{itemize}
+
+\subsection{Overview of the gaps of missing data}
+The function \fct{seqQuickLook} provides an overview of the number and size of the different types of gaps spread in the original dataset. Note that both MICT and MICT-timing differentiates between six different types of gaps. The definition of several of them depends on the number of previous (\code{np}) and future (\code{nf}) observations that are set for the MICT and MICT-timing algorithms.
+
+\begin{itemize}
+	\item \textbf{Internal gap} have at least \code{np} observations before and \code{nf} after the gap
+	
+	\item \textbf{Initial gap}
+	are situated at the very beginning of a trajectory
+	\item \textbf{Terminal gap}
+	are situated at the very end of a trajectory
+	
+	\item \textbf{Left-hand side specifically located gap (SLG)}
+	have at least \code{nf} observations after the gap, but less than \code{np} observation before it
+	
+	\item \textbf{Right-hand side specifically located gap (SLG)}
+	have at least \code{np} observations before the gap, but less than \code{nf} observation after it
+	
+	\item \textbf{Both-hand side specifically located gap (SLG)}
+	have less than \code{np} observations before the gap, and less than \code{nf} observations after it
+\end{itemize}
+
+The function returns a data frame that summarizes the characteristics of each type of gap. For each gap type, it provides the minimum and maximum lengths, the total number of gaps, and the total number of missing values they contain.
+
+For instance, consider the dataset with missing data generated in Section \ref{sec:sample}. Using an imputation model with \code{np=5} and \code{nf=5}, we have:
+<<seqQuickLook, message=FALSE>>=
+seqQuickLook(mvad.miss, var = 17:86, np = 5, nf = 5)
+@
+Therefore, for example, we observe that internal gaps have a length between 1 and 3. There are 481 such gaps, and they account for 1028 missing values.
+
+
+\section{Conclusion}
+\label{sec:conclusion}
+This document describes the functionality of the \pkg{seqimpute} package, which mainly implements two multiple imputation methods tailored to categorical sequence data: MICT and MICT-timing. In addition, several functions for displaying patterns of missing data within sequences are included. These tools are illustrated with an example focusing on a typical application in sequence analysis, namely the use of a derived typology in a regression analysis.
+
+\section{Acknowledgements}
+This publication benefited from the support of the Swiss National Science Foundation (project ``Strengthening Sequence Analysis,'' grant number: 10001A\_204740). The authors are grateful to the Swiss National Science Foundation for its financial assistance.
+%
+%	
+%%	\begin{table}[ht]
+%	%		\centering
+%	%		\begin{tabular}{cc}
+%		%			\toprule
+%		%			Parameter&Description\\
+%		%			\hline
+%		%			\multirow{2}{*}{OD}&either a data frame containing sequences of a multinomial variable with missing data \\
+%		%			&(coded as NA) or a state sequence object built with the TraMineR package\\
+%		%			np&number of previous observations used in the imputation process\\
+%		%			nf&number of subsequent observations used in the imputation process\\
+%		%			mi&number of completed datasets\\
+%		%			
+%		%			\bottomrule
+%		%		\end{tabular}
+%	%		\caption{Parameters of the seqimpute function.}
+%	%		\label{Typology_unit}
+%	%	\end{table} 
+	\newpage
+	%\bibliographystyle{apalike}
+	\bibliography{Hello}
+	
+\end{document}

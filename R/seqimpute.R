@@ -136,11 +136,11 @@
 #' # Default multiple imputation of the trajectories of game addiction with the
 #' # MICT algorithm
 #'
-#' \dontrun{
+#' 
 #' set.seed(5)
 #' imp1 <- seqimpute(data = gameadd, var = 1:4)
 #'
-#'
+#' \donttest{
 #' # Default multiple imputation with the MICT-timing algorithm
 #' set.seed(3)
 #' imp2 <- seqimpute(data = gameadd, var = 1:4, timing = TRUE)
@@ -257,7 +257,7 @@ seqimpute <- function(data, var = NULL, np = 1, nf = 1, m = 5, timing = FALSE,
   ) %dopar% {
     if (!ParParams) {
       if (verbose == TRUE) {
-        cat("iteration :", o, "/", m, "\n")
+        cat("imputation :", o, "/", m, "\n")
       }
     }
 
@@ -291,8 +291,7 @@ seqimpute <- function(data, var = NULL, np = 1, nf = 1, m = 5, timing = FALSE,
   names(imp) <- paste0("imp", 1:m)
 
 
-  imp <- lapply(imp, final.transform,
-    ODClass = dataOD$ODClass,
+  imp <- lapply(imp, final.transform, data,
     ODlevels = dataOD$ODlevels,
     rownamesDataset = rownames(dataOD$OD),
     nrowsDataset = nrow(dataOD$OD), nr = dataOD$nr,
@@ -325,7 +324,7 @@ mict <- function(
 
   if (imporder$maxInternal != 0) {
     if (verbose == TRUE) {
-      print("Imputation of the internal gaps...")
+      cat("  Imputation of the internal gaps...\n")
     }
 
     imp <- mict.internal(
@@ -342,7 +341,7 @@ mict <- function(
 
   if (imporder$maxInitial != 0) {
     if (verbose == TRUE) {
-      print("Imputation of the initial gaps...")
+      cat("  Imputation of the initial gaps...\n")
     }
 
     imp <- mict.initial(dataOD, imp,
@@ -356,7 +355,7 @@ mict <- function(
   }
   if (imporder$maxTerminal != 0) {
     if (verbose == TRUE) {
-      print("Imputation of the terminal gaps...")
+      cat("  Imputation of the terminal gaps...\n")
     }
     imp <- mict.terminal(dataOD, imp,
       MaxTermGapSize = imporder$maxTerminal,
@@ -369,7 +368,7 @@ mict <- function(
 
   if (max(imporder$maxLeftSLG) > 0) {
     if (verbose == TRUE) {
-      print("Imputation of the left-hand side SLG...")
+      cat("  Imputation of the left-hand side SLG...\n")
     }
     imp <- mict.leftSLG(dataOD, imp,
       pastDistrib = pastDistrib,
@@ -382,7 +381,7 @@ mict <- function(
   }
   if (max(imporder$maxRightSLG) > 0) {
     if (verbose == TRUE) {
-      print("Imputation of the right-hand side SLG...")
+      cat("  Imputation of the right-hand side SLG...\n")
     }
     imp <- mict.rightSLG(dataOD, imp,
       pastDistrib = pastDistrib,
@@ -396,7 +395,7 @@ mict <- function(
 
   if (max(imporder$maxBothSLG) > 0) {
     if (verbose == TRUE) {
-      print("Imputation of the both-hand side SLG...")
+      cat("  Imputation of the both-hand side SLG...\n")
     }
     for (h in 2:np) {
       if (max(imporder$maxBothSLG[h, ]) > 0) {

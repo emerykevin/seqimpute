@@ -54,15 +54,12 @@ seqQuickLook <- function(data, var = NULL, np = 1, nf = 1) {
     return(MDGapsChart)
   }
 
-  dataClass <- class(data[1, 1])
-  if ((dataClass != "factor") & (dataClass != "character") &
-    (dataClass != "numeric")) {
+  if (!inherits(data[1, 1], c("factor", "character", "numeric"))){
     stop("/!\\ The class of the variables contained in your original dataset
-         should be either 'factor','character' or 'numeric'")
+         should be either 'factor', 'character', or 'numeric'")
   }
-
-
-  if (dataClass == "factor" | dataClass == "character") {
+  
+  if (inherits(data[1, 1], c("factor", "character"))) {
     k <- length(sort(unique(as.vector(as.matrix(data)))))
   } else {
     k <- max(data)

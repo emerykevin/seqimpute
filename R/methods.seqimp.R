@@ -11,13 +11,16 @@ print.seqimp <- function(x, ...) {
 }
 
 #' Summary of a \code{seqimp} object
-#' @param object Object of class \code{seqimp}
+#' @param object of class \code{seqimp}
 #' @param ... additional arguments passed to other functions
 #'
 #' @author Kevin Emery
 #' @export
 summary.seqimp <- function(object, ...) {
   print(object, ...)
+  cat("Number of prior states included: ",object$np,"\n")
+  cat("Number of subsequent states included: ",object$nf,"\n")
+  cat("Regression model: ",object$regr,"\n\n")
   invisible(object)
 }
 

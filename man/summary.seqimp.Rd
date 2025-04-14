@@ -7,7 +7,7 @@
 \method{summary}{seqimp}(object, ...)
 }
 \arguments{
-\item{object}{Object of class \code{seqimp}}
+\item{object}{of class \code{seqimp}}
 
 \item{...}{additional arguments passed to other functions}
 }

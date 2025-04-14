@@ -9,7 +9,7 @@ mict.internal <- function(
 
   for (order in 1:MaxGap) {
     if (verbose == TRUE) {
-      print(paste0("Step ", order, "/", MaxGap))
+      cat("    Step ", order, "/", MaxGap,"\n")
     }
     shift <- compute.shift(order, MaxGap, timing=FALSE, np, nf)
 
