@@ -19,7 +19,7 @@ mict.internal <- function(
       frame.radius = 0, regr, timing = FALSE
     )
 
-    if (length(table(train[, 1])) > 1) {
+    if (length(table(train[,1])) > 1) {
       reglog <- fitmodel(train, regr, ...)
 
       imp <- impute(
@@ -29,7 +29,7 @@ mict.internal <- function(
         shift, MaxGap
       )
     } else {
-      lev <- names(table(train[, 1]))
+      lev <- names(table(train[,1]))
       REFORD <- as.matrix(REFORD_L[[order]])
       if (ncol(REFORD) == 1) {
         REFORD <- t(REFORD)

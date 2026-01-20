@@ -2,7 +2,22 @@
 %\VignetteIndexEntry{Treating Missing Data in Categorical Sequence Data}
 %\VignettePackage{seqimpute}
 %\documentclass[article]{jss}
-\documentclass{article}
+\documentclass{article}\usepackage[]{graphicx}\usepackage[]{xcolor}
+% maxwidth is the original width if it is less than linewidth
+% otherwise use linewidth (to make sure the graphics do not exceed the margin)
+\makeatletter
+\def\maxwidth{ %
+  \ifdim\Gin@nat@width>\linewidth
+    \linewidth
+  \else
+    \Gin@nat@width
+  \fi
+}
+\makeatother
+
+\usepackage{Sweave}
+
+
 %% -- LaTeX packages and custom commands ---------------------------------------
 
 %% recommended packages
@@ -65,7 +80,7 @@
 	Geneva, Switzerland\\
 	E-mail: \email{kevin.emery@unige.ch}\\
 }
-
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
 \begin{document}
 	\pagenumbering{gobble}
 	\maketitle
@@ -348,32 +363,39 @@ We begin by retrieving the dataset from the \pkg{TraMineR} package and creating 
 \subsubsection*{1. Preparation of the dataset}
 We load the \pkg{TraMineR} package and then fetch the data set named \code{mvad}. Using the \fct{seqdef} function from the \pkg{TraMineR} package, we create a state sequence object by specifying the columns containing the trajectories with the \code{var} argument, defining the possible states (the \code{alphabet}), and setting the interval between tick marks and labels in the plots with the \code{xtstep} argument.
 
-<<preliminary, echo=FALSE>>=
-library("knitr")
-options(prompt = "R> ", continue = "+  ", width = 70, useFancyQuotes = FALSE)
-render_sweave()
-@
+\begin{Schunk}
+\begin{Soutput}
+## Warning in system(sprintf("%s %s.sty", kpsewhich(), name), intern = TRUE): running command 'kpsewhich Sweave.sty' had status 1
+\end{Soutput}
+\begin{Soutput}
+## Warning in test_latex_pkg("Sweave", file.path(R.home("share"), "texmf", : unable to find LaTeX package 'Sweave'; will use a copy from knitr
+\end{Soutput}
+\end{Schunk}
 
-<<mvadseq, warning=FALSE, message=FALSE>>=
-library("TraMineR")
-data(mvad)
-mvad.alphab <- c("employment", "FE", "HE", "joblessness", "school", "training")
-mvadseq <- seqdef(mvad, var=17:86, alphabet=mvad.alphab, xtstep=6)
-@
+\begin{Schunk}
+\begin{Sinput}
+R> library("TraMineR")
+R> data(mvad)
+R> mvad.alphab <- c("employment", "FE", "HE", "joblessness", "school", "training")
+R> mvadseq <- seqdef(mvad, var=17:86, alphabet=mvad.alphab, xtstep=6)
+\end{Sinput}
+\end{Schunk}
 
 To get an initial overview of the trajectories, we use the state distribution plot built with the \fct{seqdplot} function of the \pkg{TraMineR} package. This visualization provides the distribution of states at each time point.
 
-<<mvad-seqdplot, echo=TRUE, fig.show='hide'>>=
-seqdplot(mvadseq, border=NA)
-@
+\begin{Schunk}
+\begin{Sinput}
+R> seqdplot(mvadseq, border=NA)
+\end{Sinput}
+\end{Schunk}
 
 %
 \begin{figure}[tb]
 \begin{center}
 \setkeys{Gin}{width=.6\textwidth}
-<<label=fig_mvad-seqdplot, echo=FALSE, fig.width=7, fig.height=7, out.width='.7\\textwidth'>>=
-<<mvad-seqdplot>>
-@
+\begin{Schunk}
+
+\includegraphics[width=.7\textwidth]{figure/fig_mvad-seqdplot-1} \end{Schunk}
 \caption{State distribution plot of the mvad dataset.}
 \label{fg_mvad-seqdplot}
 \end{center}
@@ -387,34 +409,40 @@ We introduce small gaps of missing data into the \code{mvad} dataset, especially
 To achieve this, we load the \pkg{seqimpute} package and use the \fct{seqaddNA} function to simulate missing values. This function generates missing data following a Markovian logic, where the \code{states.high} argument specifies the states with a higher probability of the subsequent state being missing. In this example, we use the default parameters of the function. A detailed discussion of the \fct{seqaddNA} function is provided in Section 8.
 
 As the process of simulation implies some randomness, we set a seed for reproducibility. Moreover, the \code{var} argument is used to specify the columns of the dataset that contain the trajectories.
-<<simulation-missings>>=
-library("seqimpute")
-set.seed(2)
-mvad.miss <- seqaddNA(mvad, var=17:86, states.high="joblessness")
-@
+\begin{Schunk}
+\begin{Sinput}
+R> library("seqimpute")
+R> set.seed(2)
+R> mvad.miss <- seqaddNA(mvad, var=17:86, states.high="joblessness")
+\end{Sinput}
+\end{Schunk}
 
 We have generated small gaps of missing data, which are more likely to occur after unemployment. In the next section, we examine these missing values in more detail.
 
 \subsubsection*{4. Limitations of complete case analysis}
 To illustrate the limitations of complete case analysis, we examine the state distribution at each time point of the complete trajectories. The \fct{seqcomplete} function allows to extract all the trajectories without missing data:
 
-<<cca, warning=FALSE, message=FALSE>>=
-mvadseq.miss <- seqdef(mvad.miss, 17:86, xtstep=6, alphabet=mvad.alphab, 
-right=NA)
-mvadseq.cca <- seqcomplete(mvadseq.miss)
-@
+\begin{Schunk}
+\begin{Sinput}
+R> mvadseq.miss <- seqdef(mvad.miss, 17:86, xtstep=6, alphabet=mvad.alphab, 
++  right=NA)
+R> mvadseq.cca <- seqcomplete(mvadseq.miss)
+\end{Sinput}
+\end{Schunk}
 
 We look at the state distribution plot of the complete trajectories
-<<cca-seqdplot, echo=TRUE, fig.show='hide'>>=
-seqdplot(mvadseq.cca, border=NA)
-@
+\begin{Schunk}
+\begin{Sinput}
+R> seqdplot(mvadseq.cca, border=NA)
+\end{Sinput}
+\end{Schunk}
 
 \begin{figure}[tb]
 	\begin{center}
 		\setkeys{Gin}{width=.6\textwidth}
-		<<label=fig_cca-seqdplot, echo=FALSE, fig.width=7, fig.height=7, out.width='.7\\textwidth'>>=
-		<<cca-seqdplot>>
-		@
+\begin{Schunk}
+
+\includegraphics[width=.7\textwidth]{figure/fig_cca-seqdplot-1} \end{Schunk}
 		\caption{State distribution plot of the complete trajectories.}
 		\label{fg_cca-seqdplot}
 	\end{center}
@@ -453,16 +481,18 @@ We begin by demonstrating the use of various visual tools available in the \pkg{
 To get an initial overview of the proportion of missing data across the trajectories, we look at the state 
 distribution at each time point:
 
-<<miss-seqdplot, echo=TRUE, fig.show='hide'>>=
-seqdplot(mvadseq.miss, border=NA, with.missing=TRUE)
-@
+\begin{Schunk}
+\begin{Sinput}
+R> seqdplot(mvadseq.miss, border=NA, with.missing=TRUE)
+\end{Sinput}
+\end{Schunk}
 
 \begin{figure}[tb]
 	\begin{center}
 		\setkeys{Gin}{width=.6\textwidth}
-		<<label=fig_miss-seqdplot, echo=FALSE, fig.width=8.5, fig.height=8.5, out.width='.7\\textwidth'>>=
-		<<miss-seqdplot>>
-		@
+\begin{Schunk}
+
+\includegraphics[width=.7\textwidth]{figure/fig_miss-seqdplot-1} \end{Schunk}
 		\caption{State distribution plot of the trajectories with simulated missing values.}
 		\label{fg_miss-seqdplot}
 	\end{center}
@@ -476,16 +506,18 @@ To display all patterns of missing data among the trajectories, one can use the 
 based on the \fct{seqIplot} function of \pkg{TraMineR}. With \fct{seqmissIplot},
 the trajectories are shown with horizontally stacked lines indicating whether states are missing over successive times.
 
-<<seqmissIplot, echo=TRUE, fig.show='hide'>>=
-seqmissIplot(mvadseq.miss, border=NA)
-@
+\begin{Schunk}
+\begin{Sinput}
+R> seqmissIplot(mvadseq.miss, border=NA)
+\end{Sinput}
+\end{Schunk}
 
 \begin{figure}[tb]
 	\begin{center}
 		\setkeys{Gin}{width=.6\textwidth}
-		<<label=fig_seqmissIplot, echo=FALSE, fig.width=7, fig.height=7,out.width='.7\\textwidth'>>=
-		<<seqmissIplot>>
-		@
+\begin{Schunk}
+
+\includegraphics[width=.7\textwidth]{figure/fig_seqmissIplot-1} \end{Schunk}
 		\caption{Patterns of missing data among the trajectories. Each line
 		of the plot corresponds to a sequence of the dataset.}
 		\label{fg_seqmissIplot}
@@ -498,16 +530,18 @@ This plot, displayed in Figure \ref{fg_seqmissIplot}, highlights that missing da
 \fct{seqmissIplot} also facilitates a closer examination of late entry and attrition patterns, thanks to its \code{sortv} argument. For example, by setting \code{sortv="from.end"}, the trajectories are organized according to when the last missing value occurs.
 
 
-<<seqmissIplot-fromend, echo=TRUE, fig.show='hide'>>=
-seqmissIplot(mvadseq.miss, sortv="from.end")
-@
+\begin{Schunk}
+\begin{Sinput}
+R> seqmissIplot(mvadseq.miss, sortv="from.end")
+\end{Sinput}
+\end{Schunk}
 
 \begin{figure}[tb]
 	\begin{center}
 		\setkeys{Gin}{width=.6\textwidth}
-		<<label=fig_seqmissIplot-fromend, echo=FALSE, fig.width=7, fig.height=7,out.width='.7\\textwidth'>>=
-		<<seqmissIplot-fromend>>
-		@
+\begin{Schunk}
+
+\includegraphics[width=.7\textwidth]{figure/fig_seqmissIplot-fromend-1} \end{Schunk}
 		\caption{Patterns of missing data among the trajectories, sorted by the last occurrence of a missing value.}
 		\label{fg_seqmissIplot-fromend}
 	\end{center}
@@ -518,16 +552,18 @@ In this example (Figure \ref{fg_seqmissIplot-fromend}), we do not observe anythi
 
 The \fct{seqmissfplot} shows the most frequent overall patterns of missing data within a sequence:
 
-<<seqmissfplot, echo=TRUE, fig.show='hide'>>=
-seqmissfplot(mvadseq.miss, border=NA)
-@
+\begin{Schunk}
+\begin{Sinput}
+R> seqmissfplot(mvadseq.miss, border=NA)
+\end{Sinput}
+\end{Schunk}
 
 \begin{figure}[tb]
 	\begin{center}
 		\setkeys{Gin}{width=.6\textwidth}
-		<<label=fig_seqmissfplot, echo=FALSE, fig.width=7, fig.height=7,out.width='.7\\textwidth'>>=
-		<<seqmissfplot>>
-		@
+\begin{Schunk}
+
+\includegraphics[width=.7\textwidth]{figure/fig_seqmissfplot-1} \end{Schunk}
 		\caption{Ten most frequent overall patterns of missing data among the sequences. These ten most frequent patterns are represented by stacked horizontal lines of their consecutive states, the width of the line being proportional to the proportion of sequences it represents.}
 		\label{fg_seqmissfplot}
 	\end{center}
@@ -536,16 +572,18 @@ seqmissfplot(mvadseq.miss, border=NA)
 By default \fct{seqmissfplot} shows the ten most frequent patterns of missing data. This can be modified with the
 \code{idxs} argument. We observe in Figure \ref{fg_seqmissfplot} that the most common pattern is to have no missing value. This pattern makes it difficult to see the plot. Therefore, we can have a clearer view by displaying only trajectories with at least one missing value by setting the \code{with.complete} argument to \code{FALSE}.
 
-<<seqmissfplot-nocomplete, echo=TRUE, fig.show='hide'>>=
-seqmissfplot(mvadseq.miss, with.complete=FALSE, border=NA)
-@
+\begin{Schunk}
+\begin{Sinput}
+R> seqmissfplot(mvadseq.miss, with.complete=FALSE, border=NA)
+\end{Sinput}
+\end{Schunk}
 
 \begin{figure}[tb]
 	\begin{center}
 		\setkeys{Gin}{width=.6\textwidth}
-		<<label=fig_seqmissfplot-nocomplete, echo=FALSE, fig.width=7, fig.height=7,out.width='.7\\textwidth'>>=
-		<<seqmissfplot-nocomplete>>
-		@
+\begin{Schunk}
+
+\includegraphics[width=.7\textwidth]{figure/fig_seqmissfplot-nocomplete-1} \end{Schunk}
 		\caption{Ten most frequent patterns of missing data within the sequences, excluding complete trajectories.}
 		\label{fg_seqmissfplot-complete}
 	\end{center}
@@ -560,21 +598,25 @@ The amount of missing data and the patterns are a first indicator to gauge how p
 A tool available in the package that helps to grasp the mechanism is the \fct{seqmissimplic} function, which is based on the \fct{seqimplic} function of the \pkg{TraMineRextras} package \citep{TraMineRextras}. It allows to display the states that better characterize, at each time point, sequences with missing data vs. sequences without missing data. 
 
 We first compute the results:
-<<seqmissimplic, warning=FALSE, message=FALSE>>=
-imp <- seqmissimplic(mvadseq.miss)
-@
+\begin{Schunk}
+\begin{Sinput}
+R> imp <- seqmissimplic(mvadseq.miss)
+\end{Sinput}
+\end{Schunk}
 
 Then, we plot the typical states:
-<<seqmissimplic-plot, echo=TRUE, fig.show='hide'>>=
-plot(imp)
-@
+\begin{Schunk}
+\begin{Sinput}
+R> plot(imp)
+\end{Sinput}
+\end{Schunk}
 
 \begin{figure}[tb]
 	\begin{center}
 		\setkeys{Gin}{width=.6\textwidth}
-		<<label=fig_seqmissimplic-plot, echo=FALSE, fig.width=9, fig.height=7,out.width='.99\\textwidth'>>=
-		<<seqmissimplic-plot>>
-		@
+\begin{Schunk}
+
+\includegraphics[width=.99\textwidth]{figure/fig_seqmissimplic-plot-1} \end{Schunk}
 		\caption{States that better characterise, at each time point, sequences with at least one missing value (left) and sequences with no missing data (right).}
 		\label{fg_seqmissimplic-plot}
 	\end{center}
@@ -593,10 +635,12 @@ The imputation process introduces an element of randomness. Running the imputati
 We set a seed value before generating complete datasets with the \fct{seqimpute} function. The argument \code{var} specifies which columns of the datasets contain the trajectories to be imputed (here 17 to 86), the argument \code{np} specifies how many previous observations to include in the imputation models, \code{nf} specifies how many subsequent observations to include, and the argument \code{m} specifies the number of multiple imputations. 
 
 
-<<imputations, message=FALSE, results='hide'>>=
-set.seed(1)
-imputed <- seqimpute(mvad.miss, var=17:86, np=1, nf=1, m=2)
-@
+\begin{Schunk}
+\begin{Sinput}
+R> set.seed(1)
+R> imputed <- seqimpute(mvad.miss, var=17:86, np=1, nf=1, m=2)
+\end{Sinput}
+\end{Schunk}
 
 \subsection{Typology creation}
 \label{sec:typ}
@@ -607,42 +651,51 @@ The clustering of sequences follows three steps: first, a dissimilarity is compu
 \begin{enumerate}
 	\item The \fct{fromseqimp} function allow to transform the \code{seqimp} object obtained with the \fct{seqimpute} function into various formats. In particular, by stating \code{format} to \code{"stacked"}, we obtain a dataset where the imputed datasets are stacked vertically, which is the form needed to apply Halpin's clustering strategy.
 	
-	<<stack-imputations, message=FALSE>>=
-	stackedimp <- fromseqimp(imputed, format="stacked")
-	stackedimpseq <- seqdef(stackedimp, xtstep=6)
-	@
+\begin{Schunk}
+\begin{Sinput}
+R> stackedimp <- fromseqimp(imputed, format="stacked")
+R> stackedimpseq <- seqdef(stackedimp, xtstep=6)
+\end{Sinput}
+\end{Schunk}
 	
 	\item The dissimilarity matrix is computed using the Hamming distance. 
 	
-	<<cdistance, message=FALSE>>=
-	ham <- seqdist(stackedimpseq, method = "HAM")
-	@
+\begin{Schunk}
+\begin{Sinput}
+R> ham <- seqdist(stackedimpseq, method = "HAM")
+\end{Sinput}
+\end{Schunk}
 	
 	\item The hierarchical clustering with Ward linkage is computed.
-	<<clustering, message=FALSE>>=
-	wardCluster <- hclust(as.dist(ham), method="ward.D")
-	
-	@
+\begin{Schunk}
+\begin{Sinput}
+R> wardCluster <- hclust(as.dist(ham), method="ward.D")
+\end{Sinput}
+\end{Schunk}
 	
 	\item The partition is chosen with the help of clustering quality measures, which can be computed with the \pkg{WeightedCluster} library:
 	
-	<<cqi, message=FALSE, warning=FALSE>>=
-	library("WeightedCluster")
-	wardRange <- as.clustrange(wardCluster, diss=ham, ncluster=15)
-	@
+\begin{Schunk}
+\begin{Sinput}
+R> library("WeightedCluster")
+R> wardRange <- as.clustrange(wardCluster, diss=ham, ncluster=15)
+\end{Sinput}
+\end{Schunk}
 	
 	The evolution of some of these cluster quality measures by group can be plotted:
 	
-	<<cqi-plot, echo=TRUE, fig.show='hide'>>=
-	plot(wardRange, stat=c("ASWw", "HG", "PBC", "HC"))
-	@
+\begin{Schunk}
+\begin{Sinput}
+R> plot(wardRange, stat=c("ASWw", "HG", "PBC", "HC"))
+\end{Sinput}
+\end{Schunk}
 	
 	\begin{figure}[tb]
 		\begin{center}
 			\setkeys{Gin}{width=.6\textwidth}
-			<<label=fig_cqi-plot, echo=FALSE, fig.width=7, fig.height=7,out.width='.65\\textwidth'>>=
-			<<cqi-plot>>
-			@
+\begin{Schunk}
+
+\includegraphics[width=.65\textwidth]{figure/fig_cqi-plot-1} \end{Schunk}
 			\caption{States that better characterise, at each time point, sequences with at least one missing value (left) and sequences with no missing data (right).}
 			\label{fg_cqi-plot}
 		\end{center}
@@ -653,23 +706,27 @@ The clustering of sequences follows three steps: first, a dissimilarity is compu
 	\item After performing hierarchical clustering and selecting eight clusters, we proceed to assign these clusters to the \code{seqimp} object with the \fct{addcluster} function. 
 	
 	The resulting cluster labels are stored as an additional column called \code{cluster} within the imputed datasets, setting the stage for the subsequent regression analysis.
-	<<addcluster>>=
-	imputed <- addcluster(imputed, clustering=wardRange$clustering$cluster8)
-	@
+\begin{Schunk}
+\begin{Sinput}
+R> imputed <- addcluster(imputed, clustering=wardRange$clustering$cluster8)
+\end{Sinput}
+\end{Schunk}
 \end{enumerate}
 
 Now that the clustering has been determined, we visualize the eight groups by plotting their transversal state distribution
-<<clusters-plot, echo=TRUE, fig.show='hide'>>=
-seqdplot(stackedimpseq, group =  wardRange$clustering$cluster8, 
-border = NA, with.legend=FALSE)
-@
+\begin{Schunk}
+\begin{Sinput}
+R> seqdplot(stackedimpseq, group =  wardRange$clustering$cluster8, 
++  border = NA, with.legend=FALSE)
+\end{Sinput}
+\end{Schunk}
 
 \begin{figure}[tb]
 	\begin{center}
 		\setkeys{Gin}{width=.6\textwidth}
-		<<label=fig_clusters-plot, echo=FALSE, fig.width=7, fig.height=7, out.width='.85\\textwidth'>>=
-		<<clusters-plot>>
-		@
+\begin{Schunk}
+
+\includegraphics[width=.85\textwidth]{figure/fig_clusters-plot-1} \end{Schunk}
 		\caption{Transversal state distribution of the eight groups.}
 		\label{fg_clusters-plot}
 	\end{center}
@@ -689,22 +746,38 @@ We use the \pkg{mice} package, which provides many tools for dealing with multip
 \begin{enumerate}
 	
 	\item We transform the object containing the imputed datasets with the \fct{fromseqimp} function.
-	<<mids, message=FALSE, warning=FALSE>>=
-	imputed.mids <- fromseqimp(imputed, format="mids")
-	@
+\begin{Schunk}
+\begin{Sinput}
+R> imputed.mids <- fromseqimp(imputed, format="mids")
+\end{Sinput}
+\end{Schunk}
 	
 	\item We apply a logistic regression where the dependent variable indicates membership in the sixth cluster, which represents trajectories involving unemployment. The independent variables are sex and whether the respondent's father was unemployment.
 	
 	To fit the regression models within the multiple imputation framework, we use the \fct{with} function of the \pkg{mice} \citep{mice2011} package.
-	<<fit-regression, message=FALSE, warning=FALSE>>=
-	library("mice")
-	fit <- with(imputed.mids, glm(I(cluster == 6) ~ mvad$male + mvad$funemp, 
-	family = binomial))
-	@
+\begin{Schunk}
+\begin{Sinput}
+R> library("mice")
+R> fit <- with(imputed.mids, glm(I(cluster == 6) ~ mvad$male + mvad$funemp, 
++  family = binomial))
+\end{Sinput}
+\end{Schunk}
 	\item To pool the results of the regression models, we use the \fct{pool} function, also coming from the \pkg{mice} package.
-	<<pool>>= 
-	summary(pool(fit))
-	@
+\begin{Schunk}
+\begin{Sinput}
+R> summary(pool(fit))
+\end{Sinput}
+\begin{Soutput}
+            term   estimate std.error  statistic       df
+1    (Intercept) -2.3649195 0.1968796 -12.012010 706.9327
+2   mvad$maleyes -0.5755973 0.2722765  -2.114018 706.9327
+3 mvad$funempyes  1.2762176 0.2829957   4.509671 706.9327
+       p.value
+1 2.225536e-30
+2 3.486334e-02
+3 7.599971e-06
+\end{Soutput}
+\end{Schunk}
 	The interpretation of the regression model is similar as with standard regression.
 	
 \end{enumerate}
@@ -725,17 +798,21 @@ In the illustrative example, we used MICT with a simple imputation model for ill
 	For example, in the context of our example application, the majority of transitions occur during the summer months. MICT does not discriminate between summer and other months, resulting in a lack of transitions in summer and an excess of transitions in other months. Conversely, MICT-timing makes this distinction, making it more appropriate for this particular case. 
 	
 	To apply the MICT-timing algorithm with the \fct{seqimpute} function, the argument \code{timing} must be set to \code{TRUE}. Otherwise, its use is similar to the MICT algorithm. One must specify the number of previous observations (\code{np}), the number of subsequent observations (\code{nf}), and the number of imputations (\code{m}).
-	<<imputations-timing, message=FALSE, results='hide'>>=
-	imputed <- seqimpute(mvad.miss, var=17:86, np=1, nf=1, m=3,
-	timing=TRUE)
-	@
+\begin{Schunk}
+\begin{Sinput}
+R> imputed <- seqimpute(mvad.miss, var=17:86, np=1, nf=1, m=3,
++  timing=TRUE)
+\end{Sinput}
+\end{Schunk}
 	
 	When the number of trajectories is very small (fewer than 200, based on our experience), it can be advantageous to include not only observations from the same time point across sequences but also those from adjacent time points. This can be achieved using the \code{frame.radius} argument. For instance, setting \code{frame.radius} to 1 incorporates observations from both the preceding and following time points into the imputation models.
 
-	<<imputations-timing-radius1, message=FALSE, results='hide'>>=
-	imputed <- seqimpute(mvad.miss, var=17:86, np=1, nf=1, m=3, 
-	timing=TRUE, frame.radius=1)
-	@
+\begin{Schunk}
+\begin{Sinput}
+R> imputed <- seqimpute(mvad.miss, var=17:86, np=1, nf=1, m=3, 
++  timing=TRUE, frame.radius=1)
+\end{Sinput}
+\end{Schunk}
 	
 		\item \textbf{Inclusion of covariates} 
 		
@@ -753,10 +830,12 @@ In the illustrative example, we used MICT with a simple imputation model for ill
 	
 	Covariates should be included by specifying the names of the columns in the data set that contain the covariates we want to include. We are including gender, type of secondary education, and whether the father was unemployed. These are in the columns named  \textit{male}, \textit{Grammar} and \textit{funemp}.
 	
-	<<imputations-covariates, message=FALSE, results='hide'>>=
-	imputed <- seqimpute(mvad.miss, var=17:86, np=5, nf=5, m=3, 
-	timing=TRUE, covariates=c("male","Grammar","funemp"))
-	@
+\begin{Schunk}
+\begin{Sinput}
+R> imputed <- seqimpute(mvad.miss, var=17:86, np=5, nf=5, m=3, 
++  timing=TRUE, covariates=c("male","Grammar","funemp"))
+\end{Sinput}
+\end{Schunk}
 	
 	The \fct{seqimpute} function can also be provided with time-varying covariates, supplied either as a list of sequence objects (each corresponding to a time-varying covariate) or as a list of dataframes.
 	
@@ -766,10 +845,12 @@ In the illustrative example, we used MICT with a simple imputation model for ill
 	
 	In the example, we relied on only one observation in the past and one in the future for the prediction. If long-term effects are suspected, it may be worth increasing the number of past and future observations included.
 	
-	<<imputations-5predictors, message=FALSE, results='hide'>>=
-	imputed <- seqimpute(mvad.miss, var=17:86, np=5, nf=5, 
-	m=3, timing=TRUE)
-	@
+\begin{Schunk}
+\begin{Sinput}
+R> imputed <- seqimpute(mvad.miss, var=17:86, np=5, nf=5, 
++  m=3, timing=TRUE)
+\end{Sinput}
+\end{Schunk}
 	
 	\item \textbf{Number of imputations} 
 	
@@ -787,22 +868,26 @@ The package offers the flexibility to employ random forests as an alternative to
 To apply the imputation model defined in the last section with random forests imputation models, one needs to set the \code{regr} argument to \code{"rf"}
 
 
-<<imputations-rf, message=FALSE, results='hide', eval=FALSE>>=
-set.seed(2)
-imputed.rf <- seqimpute(mvad.miss, var=17:86, np=5, nf=5, m=3,
-covariates=c("male","Grammar","funemp"),regr="rf")
-@
+\begin{Schunk}
+\begin{Sinput}
+R> set.seed(2)
+R> imputed.rf <- seqimpute(mvad.miss, var=17:86, np=5, nf=5, m=3,
++  covariates=c("male","Grammar","funemp"),regr="rf")
+\end{Sinput}
+\end{Schunk}
 
 \subsection{Parallel computing}
 Multiple imputation can be computationally intensive. To address this, the \fct{seqimpute} function supports parallel computing. Since each imputation is completely independent of the others, it is possible to run each of the imputations simultaneously in parallel, providing a practical solution to reduce processing time. 
 
 To enable parallel computing, the \code{ParExec} argument must be set to \code{TRUE}, and the \code{ncores} argument specifies the number of cores to use. If the number of cores is not specified, it is set as the maximum number of available cores minus 1. For reproducibility, a seed should be provided using the \code{SetRNGSeed} argument. Note that using \code{set.seed()} alone before computations does not ensure reproducibility; the \code{SetRNGSeed} argument must be explicitly set.
 
-<<imputations-parallel, message=FALSE, results='hide', eval=FALSE>>=
-imputed.par <- seqimpute(mvad.miss,var=17:86, np=5, nf=5, m=3,
-covariates=c("male","Grammar","funemp"), ParExec = TRUE, ncores=3, 
-SetRNGSeed = 2)
-@
+\begin{Schunk}
+\begin{Sinput}
+R> imputed.par <- seqimpute(mvad.miss,var=17:86, np=5, nf=5, m=3,
++  covariates=c("male","Grammar","funemp"), ParExec = TRUE, ncores=3, 
++  SetRNGSeed = 2)
+\end{Sinput}
+\end{Schunk}
 
 \section{Additional Functions}
 This section outlines additional functionalities provided by the package. We focus on two functions: \fct{seqaddNA}, which simulates missing data and \fct{seqQuickLook}, which provides an overview of the number and sizes of different types of gaps in the original dataset.
@@ -849,9 +934,20 @@ The function \fct{seqQuickLook} provides an overview of the number and size of t
 The function returns a data frame that summarizes the characteristics of each type of gap. For each gap type, it provides the minimum and maximum lengths, the total number of gaps, and the total number of missing values they contain.
 
 For instance, consider the dataset with missing data generated in Section \ref{sec:sample}. Using an imputation model with \code{np=5} and \code{nf=5}, we have:
-<<seqQuickLook, message=FALSE>>=
-seqQuickLook(mvad.miss, var = 17:86, np = 5, nf = 5)
-@
+\begin{Schunk}
+\begin{Sinput}
+R> seqQuickLook(mvad.miss, var = 17:86, np = 5, nf = 5)
+\end{Sinput}
+\begin{Soutput}
+                    MinGapSize MaxGapSize numbOfGaps sumNAGaps
+Internal Gaps                1          3        481      1028
+Initial Gaps                 1          3          7        16
+Terminal Gaps                1          3         23        38
+LEFT-hand side SLG           2          3         25        50
+RIGHT-hand side SLG          1          3         44        81
+BOTH-hand side SLG           0          0          0         0
+\end{Soutput}
+\end{Schunk}
 Therefore, for example, we observe that internal gaps have a length between 1 and 3. There are 481 such gaps, and they account for 1028 missing values.
 
 

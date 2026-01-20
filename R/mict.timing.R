@@ -1,8 +1,10 @@
 mict.timing <- function(
-    data, imporder, regr = "multinom", np = 1, nf = 0,
+    data, imp, imporder, regr = "multinom", np = 1, nf = 0,
     nfi = 1, npt = 1, available = TRUE, pastDistrib = FALSE,
     futureDistrib = FALSE, m = 1, frame.radius = 0, verbose = TRUE, ...) {
-  imp <- data$ODi
+  
+  data$OD <- imp
+
   if (imporder$maxInternal > 0) {
     if (verbose) {
       cat("  Imputation of the internal gaps...\n")
@@ -14,6 +16,8 @@ mict.timing <- function(
       futureDistrib, available,
       imporder$internal, frame.radius, verbose, ...
     )
+    data$OD <- imp
+    
   }
   if (imporder$maxInitial > 0) {
     if (verbose) {
@@ -25,6 +29,8 @@ mict.timing <- function(
       pastDistrib = FALSE, futureDistrib, available,
       imporder$initial, frame.radius, verbose, ...
     )
+    data$OD <- imp
+    
   }
   if (imporder$maxTerminal > 0) {
     if (verbose == TRUE) {
@@ -37,12 +43,13 @@ mict.timing <- function(
       pastDistrib, futureDistrib = FALSE, available,
       imporder$terminal, frame.radius, verbose, ...
     )
+    data$OD <- imp
+    
   }
   if (max(imporder$maxLeftSLG) > 0) {
     if (verbose == TRUE) {
       cat("  Imputation of the left-hand side SLG...\n")
     }
-
     for (h in 2:np) {
       if (imporder$maxLeftSLG[h] > 0) {
         np_temp <- h - 1
@@ -54,6 +61,8 @@ mict.timing <- function(
           imporder$SLGleft[[h]], frame.radius,
           verbose, ...
         )
+        data$OD <- imp
+        
       }
     }
   }
@@ -73,6 +82,8 @@ mict.timing <- function(
           imporder$SLGright[[h]], frame.radius,
           verbose, ...
         )
+        data$OD <- imp
+        
       }
     }
   }
@@ -92,6 +103,8 @@ mict.timing <- function(
             available, imporder$SLGboth[[g]][[h]],
             frame.radius, verbose, ...
           )
+          data$OD <- imp
+          
         }
       }
     }
@@ -107,7 +120,7 @@ mict.timing.impute <- function(data, imp, MaxGap, regr, np, nf,
   nc <- data$nc
   nr <- data$nr
   k <- data$k
-
+  
   for (order in 1:MaxGap) {
     if (verbose == TRUE) {
       cat(paste0("    Step ", order, "/", MaxGap,"\n"))
@@ -137,7 +150,6 @@ mict.timing.impute <- function(data, imp, MaxGap, regr, np, nf,
 
       if (length(table(train[, 1])) > 1) {
         reglog <- fitmodel(train, regr, ...)
-
         imp <- impute.timing(
           data, order, train,
           imp, pastDistrib, futureDistrib, available,
@@ -174,13 +186,13 @@ compute.traindata <- function(data, MaxGap, order, shift, np, nc, nr, nf, k,
   ud <- length(col_to_use)
 
   iter <- 1
-  CD <- matrix(NA, nrow = nr * ud, ncol = 1)
-  if (np > 0) {
-    CDp <- matrix(NA, nrow = nr * ud, ncol = np)
-  }
-  if (nf > 0) {
-    CDf <- matrix(NA, nrow = nr * ud, ncol = nf)
-  }
+  CD <- matrix(NA, nrow = nr * ud, ncol = 1+np+nf)
+  # if (np > 0) {
+  #   CDp <- matrix(NA, nrow = nr * ud, ncol = np)
+  # }
+  # if (nf > 0) {
+  #   CDf <- matrix(NA, nrow = nr * ud, ncol = nf)
+  # }
 
   if (ncot > 0) {
     COtselected <- do.call(rbind, replicate(ud, COtsample, simplify = FALSE))
@@ -205,16 +217,25 @@ compute.traindata <- function(data, MaxGap, order, shift, np, nc, nr, nf, k,
 
     if (np > 0 & nf > 0) {
       if (shift == 0) {
-        CDp[t1:t2, ] <- OD[, (j - np):(j - 1)]
-        CDf[t1:t2, ] <- OD[, (j + MaxGap - order + 1):(j + MaxGap - order + nf)]
+        #CDp[t1:t2, ] <- OD[, (j - np):(j - 1)]
+        #CDf[t1:t2, ] <- OD[, (j + MaxGap - order + 1):(j + MaxGap - order + nf)]
+        
+        CD[t1:t2,] <- OD[,c(j,(j-np):(j-1),(j + MaxGap - order + 1):(j + MaxGap - order + nf))]
+        
       } else {
-        CDp[t1:t2, ] <- OD[, (j - shift - np):(j - shift - 1)]
-        CDf[t1:t2, ] <- OD[, (j + 1):(j + nf)]
+        # CDp[t1:t2, ] <- OD[, (j - shift - np):(j - shift - 1)]
+        # CDf[t1:t2, ] <- OD[, (j + 1):(j + nf)]
+        CD[t1:t2,] <- OD[,c(j,(j - shift - np):(j - shift - 1),(j + 1):(j + nf))]
+        
       }
     } else if (np == 0) {
-      CDf[t1:t2, ] <- OD[, (j + 1):(j + nf)]
+      #CDf[t1:t2, ] <- OD[, (j + 1):(j + nf)]
+      CD[t1:t2,] <- OD[,c(j,(j+1):(j+nf))]
+      
     } else {
-      CDp[t1:t2, ] <- OD[, (j - np):(j - 1)]
+      #CDp[t1:t2, ] <- OD[, (j - np):(j - 1)]
+      CD[t1:t2,] <- OD[,c(j,(j-np):(j-1))]
+      
     }
 
     if (ncot > 0) {
@@ -232,13 +253,14 @@ compute.traindata <- function(data, MaxGap, order, shift, np, nc, nr, nf, k,
 
     iter <- iter + 1
   }
-  if (np > 0 & nf > 0) {
-    CD <- cbind(CD, CDp, CDf)
-  } else if (np == 0) {
-    CD <- cbind(CD, CDf)
-  } else {
-    CD <- cbind(CD, CDp)
-  }
+  # 
+  # if (np > 0 & nf > 0) {
+  #   CD <- cbind(CD, CDp, CDf)
+  # } else if (np == 0) {
+  #   CD <- cbind(CD, CDf)
+  # } else {
+  #   CD <- cbind(CD, CDp)
+  # }
 
   if (pastDistrib) {
     CD <- cbind(CD, CDdb)
@@ -280,13 +302,19 @@ compute.traindata <- function(data, MaxGap, order, shift, np, nc, nr, nf, k,
   } else if (regr == "multinom") {
     CD[, 1] <- factor(CD[, 1], levels = c(1:k))
     CD[, 1] <- droplevels(CD[, 1])
-
+    
+    CD <- CD[complete.cases(CD),]
     if (npfi > 1) {
+      # CD[, (2:(1 + npfi))] <- lapply(CD[, (2:(1 + npfi))], factor,
+      #     levels = c(1:k, NA), exclude = NULL
+      
       CD[, (2:(1 + npfi))] <- lapply(CD[, (2:(1 + npfi))], factor,
-        levels = c(1:k, NA), exclude = NULL
+                               levels = c(1:k), exclude = NULL
       )
     } else {
-      CD[, 2] <- factor(CD[, 2], levels = c(1:k, NA), exclude = NULL)
+      #CD[, 2] <- factor(CD[, 2], levels = c(1:k, NA), exclude = NULL)
+      CD[, 2] <- factor(CD[, 2], levels = c(1:k), exclude = NULL)
+      
     }
   } else {
   }
@@ -448,7 +476,6 @@ impute.timing <- function(data, order, CD, imp,
     CDi <- cbind(CDi, CDpi)
   }
 
-
   if (pastDistrib) {
     CDdb <- matrix(NA, nrow = length(row_to_imp), ncol = k)
     CDdb[, ] <- compute.distrib(LOOKUP[row_to_imp, , drop = FALSE], nc, k, col,
@@ -485,7 +512,7 @@ impute.timing <- function(data, order, CD, imp,
     COtselected_i <- COt[row_to_imp, indices, drop = FALSE]
     CDi <- cbind(CDi, COtselected_i)
   }
-
+  
   if (regr == "rf") {
     for (v in 2:(1 + np + nf)) {
       CDi[, v] <- factor(CDi[, v], levels = c(1:(k + 1)))
@@ -500,7 +527,7 @@ impute.timing <- function(data, order, CD, imp,
   }
 
   colnames(CDi) <- paste("V", 1:ncol(CDi), sep = "")
-
+  
   if (regr == "multinom") {
     pred <- predict(reglog, CDi, type = "probs")
     names_saved <- reglog$lev
@@ -508,6 +535,15 @@ impute.timing <- function(data, order, CD, imp,
       pred <- matrix(pred, nrow = 1)
     }
 
+    # if (length(reglog$lev) > 2) {
+    #   alea <- runif(length(row_to_imp))
+    #   postmat <- t(apply(pred, 1, cumsum))  # Matrice des postérieurs cumulés
+    #   mask <- postmat >= alea               # Matrice logique
+    #   
+    #   idx <- max.col(mask, ties.method = "first")  # Première position TRUE dans chaque ligne
+    #   imp[row_to_imp, col] <- as.numeric(names_saved[idx])
+    # }
+    
     if (length(reglog$lev) > 2) {
       for (u in 1:length(row_to_imp)) {
         i <- row_to_imp[u]
