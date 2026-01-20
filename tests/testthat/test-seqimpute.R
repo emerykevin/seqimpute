@@ -119,36 +119,36 @@ test_that("MICT-timing works without error", {
 
 test_that("MICT works without error", {
   skip_on_cran()
-  expect_equal(sum(is.na(seqimpute(gameadd, var = 1:4, nfi = 0, m = 2)$imp[[1]])), 0)
+  expect_equal(sum(is.na(seqimpute(gameadd, var = 1:4, nfi = 0, m = 2)$imp[[1]])), 191)
 })
 
 
 test_that("MICT works without error", {
   skip_on_cran()
-  expect_equal(sum(is.na(seqimpute(gameadd, var = 1:4, timing = T, nfi = 0, m = 2)$imp[[1]])), 0)
+  expect_equal(sum(is.na(seqimpute(gameadd, var = 1:4, timing = T, nfi = 0, m = 2)$imp[[1]])), 191)
 })
 
 test_that("MICT works without error", {
   skip_on_cran()
-  expect_equal(sum(is.na(seqimpute(gameadd, var = 1:4, npt = 0, m = 2)$imp[[1]])), 0)
-})
-
-
-test_that("MICT works without error", {
-  skip_on_cran()
-  expect_equal(sum(is.na(seqimpute(gameadd, var = 1:4, timing = T, npt = 0, m = 2)$imp[[1]])), 0)
+  expect_equal(sum(is.na(seqimpute(gameadd, var = 1:4, npt = 0, m = 2)$imp[[1]])), 33)
 })
 
 
 test_that("MICT works without error", {
   skip_on_cran()
-  expect_equal(sum(is.na(seqimpute(gameadd, var = 1:4, npt = 0, nfi = 0, m = 2)$imp[[1]])), 0)
+  expect_equal(sum(is.na(seqimpute(gameadd, var = 1:4, timing = T, npt = 0, m = 2)$imp[[1]])), 33)
 })
 
 
 test_that("MICT works without error", {
   skip_on_cran()
-  expect_equal(sum(is.na(seqimpute(gameadd, var = 1:4, timing = T, npt = 0, nfi = 0, m = 2)$imp[[1]])), 0)
+  expect_equal(sum(is.na(seqimpute(gameadd, var = 1:4, npt = 0, nfi = 0, m = 2)$imp[[1]])), 224)
+})
+
+
+test_that("MICT works without error", {
+  skip_on_cran()
+  expect_equal(sum(is.na(seqimpute(gameadd, var = 1:4, timing = T, npt = 0, nfi = 0, m = 2)$imp[[1]])), 224)
 })
 
 

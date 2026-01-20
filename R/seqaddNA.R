@@ -78,39 +78,48 @@
 #' }
 #'
 #' @export
-seqaddNA <- function(data, var = NULL, states.high = NULL, pstart.high = 0.1, 
-                        pstart.low = 0.005, pcont=0.66, propdata=1, maxgap = 3, 
-                        maxprop=0.75, only.traj = FALSE)
-{
-  data.traj <- data
+seqaddNA <- function(
+    data, var = NULL, states.high = NULL, propdata = 1,
+    pstart.high = 0.1, pstart.low = 0.005, pcont = 0.66, maxgap = 3, 
+    maxprop = 0.75, only.traj = FALSE) {
   
+  data.traj <- dataxtract(data, var)
+
   sizehalf <- round(propdata * nrow(data.traj))
   rowsmiss <- sample(1:nrow(data.traj), size = sizehalf, replace = FALSE)
   matrix.missing <- matrix(1, nrow(data.traj), ncol(data.traj))
   for (i in 1:length(rowsmiss)) {
     nmis <- ncol(data.traj)
+    length.gap <- 0
     while (nmis > floor(maxprop * ncol(data.traj))) {
-      length.gap <- 0
       for (j in 1:ncol(data.traj)) {
         if (length.gap == maxgap) {
           matrix.missing[rowsmiss[i], j] <- 1
           length.gap <- 0
         } else {
           if (j == 1) {
-            matrix.missing[rowsmiss[i], j] <- sample(x = c(0, 1), size = 1, 
-                                                     prob = c(pstart.low, 1 - pstart.low))
+            matrix.missing[rowsmiss[i], j] <- sample(
+              x = c(0, 1), size = 1,
+              prob = c(pstart.low, 1 - pstart.low)
+            )
           } else {
             if (matrix.missing[rowsmiss[i], j - 1] == 1) {
               if (data.traj[rowsmiss[i], j - 1] %in% states.high) {
-                matrix.missing[rowsmiss[i], j] <- sample(x = c(0, 1), size = 1, 
-                                                         prob = c(pstart.high, 1 - pstart.high))
+                matrix.missing[rowsmiss[i], j] <- sample(
+                  x = c(0, 1), size = 1,
+                  prob = c(pstart.high, 1 - pstart.high)
+                )
               } else {
-                matrix.missing[rowsmiss[i], j] <- sample(x = c(0, 1), size = 1, 
-                                                         prob = c(pstart.low, 1 - pstart.low))
+                matrix.missing[rowsmiss[i], j] <- sample(
+                  x = c(0, 1), size = 1,
+                  prob = c(pstart.low, 1 - pstart.low)
+                )
               }
             } else {
-              matrix.missing[rowsmiss[i], j] <- sample(x = c(0, 1), size = 1, 
-                                                       prob = c(pcont, 1-pcont))
+              matrix.missing[rowsmiss[i], j] <- sample(
+                x = c(0, 1), size = 1,
+                prob = c(pcont, 1 - pcont)
+              )
             }
           }
           if (matrix.missing[rowsmiss[i], j] == 0) {
@@ -123,13 +132,13 @@ seqaddNA <- function(data, var = NULL, states.high = NULL, pstart.high = 0.1,
       nmis <- sum(matrix.missing[rowsmiss[i], ] == 0)
     }
   }
-  
+
   data.traj[matrix.missing == 0] <- NA
-  
-  if(is.null(var) | only.traj == TRUE){
+
+  if (is.null(var) | only.traj == TRUE) {
     data <- data.traj
-  }else{
-    data <- dataputback(data, var=var, data.traj=data.traj)
+  } else {
+    data <- dataputback(data, var = var, data.traj = data.traj)
   }
   return(data)
 }

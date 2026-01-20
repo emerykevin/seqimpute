@@ -2,7 +2,7 @@
 % Please edit documentation in R/seqimpute.R
 \name{seqimpute}
 \alias{seqimpute}
-\title{seqimpute.iter: Imputation of missing data in longitudinal categorical data}
+\title{seqimpute: Imputation of missing data in longitudinal categorical data}
 \usage{
 seqimpute(
   data,
@@ -10,7 +10,6 @@ seqimpute(
   np = 1,
   nf = 1,
   m = 5,
-  niter = 1,
   timing = FALSE,
   frame.radius = 0,
   covariates = NULL,
@@ -48,8 +47,6 @@ for internal gaps.}
 for internal gaps.}
 
 \item{m}{Number of multiple imputations to perform (default: \code{5}).}
-
-\item{niter}{Number of iterations of the algorithm.}
 
 \item{timing}{Logical, specifies the imputation algorithm to use.
 If \code{FALSE}, the MICT algorithm is applied; if \code{TRUE}, the
@@ -123,7 +120,87 @@ elements:
 }
 }
 \description{
-seqimpute.iter: Imputation of missing data in longitudinal categorical data
+The seqimpute package implements the MICT and MICT-timing
+methods. These are multiple imputation methods for longitudinal data.
+The core idea of the algorithms is to fills gaps of missing data, which is
+the typical form of missing data in a longitudinal setting, recursively from
+their edges. The prediction is based on either a multinomial or a
+random forest regression model. Covariates and time-dependent covariates
+can be included in the model.
+
+The MICT-timing algorithm is an extension of the MICT algorithm designed
+to address a key limitation of the latter: its assumption that position in
+the trajectory is irrelevant.
+}
+\details{
+The imputation process is divided into several steps, depending on
+the type of gaps of missing data. The order of imputation of the gaps are:
+\describe{
+ \item{\code{Internal gap: }}{there is at least \code{np} observations
+ before an internal gap and \code{nf} after the gap}
+
+ \item{\code{Initial gap: }}{gaps situated at the very beginning
+ of a trajectory}
+
+ \item{\code{Terminal gap: }}{gaps situated at the very end
+ of a trajectory}
+ \item{\code{Left-hand side specifically located gap (SLG): }}{gaps
+ that have at least \code{nf} observations after the gap, but less than
+ \code{np} observation before it}
+ \item{\code{Right-hand side SLG: }}{gaps
+ that have at least \code{np} observations before the gap, but less than
+ \code{nf} observation after it}
+ \item{\code{Both-hand side SLG: }}{gaps
+ that have less than \code{np} observations before the gap, and less than
+ \code{nf} observations after it}
+}
+
+
+The primary difference between the MICT and MICT-timing
+algorithms lies in their approach to selecting patterns from other
+sequences for fitting the multinomial model. While the MICT algorithm
+considers all similar patterns regardless of their temporal placement,
+MICT-timing restricts pattern selection to those that are temporally
+closest to the missing value. This refinement ensures that the
+imputation process adequately accounts for temporal dynamics, imping
+in more accurate imputed values.
+}
+\examples{
+
+# Default multiple imputation of the trajectories of game addiction with the
+# MICT algorithm
+
+
+set.seed(5)
+imp1 <- seqimpute(data = gameadd, var = 1:4)
+
+\donttest{
+# Default multiple imputation with the MICT-timing algorithm
+set.seed(3)
+imp2 <- seqimpute(data = gameadd, var = 1:4, timing = TRUE)
+
+
+# Inclusion in the MICt-timing imputation process of the three background
+# characteristics (Gender, Age and Track), and the time-varying covariate
+# about gambling
+
+
+set.seed(4)
+imp3 <- seqimpute(
+  data = gameadd, var = 1:4, covariates = 5:7,
+  time.covariates = 8:11
+)
+
+
+# Parallel computation
+
+
+imp4 <- seqimpute(
+  data = gameadd, var = 1:4, covariates = 5:7,
+  time.covariates = 8:11, ParExec = TRUE, ncores = 5, SetRNGSeed = 2
+)
+}
+
 }
 \references{
 Halpin, B. (2012). Multiple imputation for life-course

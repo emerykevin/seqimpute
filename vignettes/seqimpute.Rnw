@@ -1,8 +1,7 @@
 %\VignetteEngine{knitr::knitr}
 %\VignetteIndexEntry{Treating Missing Data in Categorical Sequence Data}
 %\VignettePackage{seqimpute}
-%\documentclass[article]{jss}
-\documentclass{article}
+\documentclass[nojss]{jss}
 %% -- LaTeX packages and custom commands ---------------------------------------
 
 %% recommended packages

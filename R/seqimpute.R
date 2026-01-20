@@ -1,4 +1,50 @@
-#' seqimpute.iter: Imputation of missing data in longitudinal categorical data
+#' seqimpute: Imputation of missing data in longitudinal categorical data
+#'
+#' @description The seqimpute package implements the MICT and MICT-timing
+#' methods. These are multiple imputation methods for longitudinal data.
+#' The core idea of the algorithms is to fills gaps of missing data, which is
+#' the typical form of missing data in a longitudinal setting, recursively from
+#' their edges. The prediction is based on either a multinomial or a
+#' random forest regression model. Covariates and time-dependent covariates
+#' can be included in the model.
+#'
+#' The MICT-timing algorithm is an extension of the MICT algorithm designed
+#' to address a key limitation of the latter: its assumption that position in
+#' the trajectory is irrelevant.
+#'
+#' @details The imputation process is divided into several steps, depending on
+#' the type of gaps of missing data. The order of imputation of the gaps are:
+#' \describe{
+#'  \item{\code{Internal gap: }}{there is at least \code{np} observations
+#'  before an internal gap and \code{nf} after the gap}
+#'
+#'  \item{\code{Initial gap: }}{gaps situated at the very beginning
+#'  of a trajectory}
+#'
+#'  \item{\code{Terminal gap: }}{gaps situated at the very end
+#'  of a trajectory}
+#'  \item{\code{Left-hand side specifically located gap (SLG): }}{gaps
+#'  that have at least \code{nf} observations after the gap, but less than
+#'  \code{np} observation before it}
+#'  \item{\code{Right-hand side SLG: }}{gaps
+#'  that have at least \code{np} observations before the gap, but less than
+#'  \code{nf} observation after it}
+#'  \item{\code{Both-hand side SLG: }}{gaps
+#'  that have less than \code{np} observations before the gap, and less than
+#'  \code{nf} observations after it}
+#' }
+#'
+#'
+#' The primary difference between the MICT and MICT-timing
+#' algorithms lies in their approach to selecting patterns from other
+#' sequences for fitting the multinomial model. While the MICT algorithm
+#' considers all similar patterns regardless of their temporal placement,
+#' MICT-timing restricts pattern selection to those that are temporally
+#' closest to the missing value. This refinement ensures that the
+#' imputation process adequately accounts for temporal dynamics, imping
+#' in more accurate imputed values.
+#'
+#'
 #' @param data Either a data frame containing sequences of a categorical
 #' variable, where missing data are coded as \code{NA}, or a state sequence
 #' object created using the \link[TraMineR]{seqdef} function. If using a
@@ -13,7 +59,6 @@
 #' @param nf Number of subsequent states to include in the imputation model
 #' for internal gaps.
 #' @param m Number of multiple imputations to perform (default: \code{5}).
-#' @param niter Number of iterations of the algorithm.
 #' @param timing Logical, specifies the imputation algorithm to use.
 #' If \code{FALSE}, the MICT algorithm is applied; if \code{TRUE}, the
 #' MICT-timing algorithm is used.
@@ -86,6 +131,42 @@
 #'   \item{\code{call}}{The call that created the object.}
 #' }
 #'
+#' @examples
+#'
+#' # Default multiple imputation of the trajectories of game addiction with the
+#' # MICT algorithm
+#'
+#' 
+#' set.seed(5)
+#' imp1 <- seqimpute(data = gameadd, var = 1:4)
+#'
+#' \donttest{
+#' # Default multiple imputation with the MICT-timing algorithm
+#' set.seed(3)
+#' imp2 <- seqimpute(data = gameadd, var = 1:4, timing = TRUE)
+#'
+#'
+#' # Inclusion in the MICt-timing imputation process of the three background
+#' # characteristics (Gender, Age and Track), and the time-varying covariate
+#' # about gambling
+#'
+#'
+#' set.seed(4)
+#' imp3 <- seqimpute(
+#'   data = gameadd, var = 1:4, covariates = 5:7,
+#'   time.covariates = 8:11
+#' )
+#'
+#'
+#' # Parallel computation
+#'
+#'
+#' imp4 <- seqimpute(
+#'   data = gameadd, var = 1:4, covariates = 5:7,
+#'   time.covariates = 8:11, ParExec = TRUE, ncores = 5, SetRNGSeed = 2
+#' )
+#' }
+#'
 #' @references Halpin, B. (2012). Multiple imputation for life-course
 #' sequence data. Working Paper WP2012-01, Department of Sociology,
 #' University of Limerick. http://hdl.handle.net/10344/3639.
@@ -99,16 +180,16 @@
 #' https://link.springer.com/article/10.1007/s11135-024-02028-z
 #'
 #' @export
-seqimpute <- function(data, var = NULL, np = 1, nf = 1, m = 5, niter=1, timing = FALSE,
-                           frame.radius = 0, covariates = NULL,
-                           time.covariates = NULL, regr = "multinom", npt = 1,
-                           nfi = 1, ParExec = FALSE, ncores = NULL,
-                           SetRNGSeed = FALSE, end.impute = TRUE, verbose = TRUE,
-                           available = TRUE, pastDistrib = FALSE,
-                           futureDistrib = FALSE, ...) {
+seqimpute <- function(data, var = NULL, np = 1, nf = 1, m = 5, timing = FALSE,
+                      frame.radius = 0, covariates = NULL,
+                      time.covariates = NULL, regr = "multinom", npt = 1,
+                      nfi = 1, ParExec = FALSE, ncores = NULL,
+                      SetRNGSeed = FALSE, end.impute = TRUE, verbose = TRUE,
+                      available = TRUE, pastDistrib = FALSE,
+                      futureDistrib = FALSE, ...) {
   call <- match.call()
   check.deprecated(...)
-  
+
   if (inherits(data, "stslist")) {
     valuesNA <- c(attr(data, "nr"), attr(data, "void"))
     data <- data.frame(data)
@@ -116,7 +197,7 @@ seqimpute <- function(data, var = NULL, np = 1, nf = 1, m = 5, niter=1, timing =
   } else {
     covariates <- covxtract(data, covariates)
     time.covariates <- covxtract(data, time.covariates)
-    
+
     data <- dataxtract(data, var)
   }
   dataOD <- check.data(data, covariates, time.covariates, var)
@@ -126,27 +207,27 @@ seqimpute <- function(data, var = NULL, np = 1, nf = 1, m = 5, niter=1, timing =
     }
     return(dataOD$OD)
   }
-  
+
   tmp <- check.predictors(np, nf, npt, nfi)
   np <- tmp$np
   nf <- tmp$nf
   nfi <- tmp$nfi
   npt <- tmp$npt
-  
+
   regr <- check.regr(regr)
-  
+
   imporder <- compute.order(
     dataOD$OD, dataOD$nr, dataOD$nc, np, nf, npt, nfi,
     end.impute
   )
-  
+
   if (ParExec) {
     available.cores <- parallelly::availableCores(logical = TRUE)
     ncores <- check.cores(ncores, available.cores, m)
   } else {
     ncores <- 1
   }
-  
+
   if (ncores > 1) {
     cl <- parallel::makeCluster(ncores)
     doSNOW::registerDoSNOW(cl)
@@ -156,19 +237,19 @@ seqimpute <- function(data, var = NULL, np = 1, nf = 1, m = 5, niter=1, timing =
     pb <- txtProgressBar(max = m, style = 3)
     progress <- function(n) setTxtProgressBar(pb, n)
     opts <- list(progress = progress)
-    
+
     ParParams <- TRUE
   } else {
     if (SetRNGSeed) {
       set.seed(SetRNGSeed)
     }
-    
+
     foreach::registerDoSEQ()
     opts <- NULL
-    
+
     ParParams <- FALSE
   }
-  
+
   o <- NULL
   imp <- foreach(
     o = 1:m, .inorder = TRUE,
@@ -179,48 +260,42 @@ seqimpute <- function(data, var = NULL, np = 1, nf = 1, m = 5, niter=1, timing =
         cat("imputation :", o, "/", m, "\n")
       }
     }
-    imp <- seqimpute.init(dataOD$ODi,end.impute=end.impute)
 
-    for(i in 1:niter){
-      if (timing == FALSE) {
-        imp <- mict(dataOD, imp,
-                           imporder = imporder,
-                           np = np, nf = nf, m = m, regr = regr,
-                           nfi = nfi, npt = npt,
-                           available = TRUE,
-                           pastDistrib = pastDistrib,
-                           futureDistrib = futureDistrib,
-                           verbose = verbose, ...
-        )
 
-        
-      } else {
-        tt <- imp
-        imp <- mict.timing(dataOD, imp,
-                                  imporder = imporder,
-                                  np = np, nf = nf, m = m, regr = regr,
-                                  nfi = nfi, npt = npt,
-                                  available = TRUE,
-                                  pastDistrib = pastDistrib,
-                                  futureDistrib = futureDistrib,
-                                  verbose = verbose,
-                                  frame.radius = frame.radius, ...
-        )
-      }
-
+    if (timing == FALSE) {
+      imp <- mict(dataOD,
+        imporder = imporder,
+        np = np, nf = nf, m = m, regr = regr,
+        nfi = nfi, npt = npt,
+        available = available,
+        pastDistrib = pastDistrib,
+        futureDistrib = futureDistrib,
+        verbose = verbose, ...
+      )
+    } else {
+      imp <- mict.timing(dataOD,
+        imporder = imporder,
+        np = np, nf = nf, m = m, regr = regr,
+        nfi = nfi, npt = npt,
+        available = available,
+        pastDistrib = pastDistrib,
+        futureDistrib = futureDistrib,
+        verbose = verbose,
+        frame.radius = frame.radius, ...
+      )
     }
-    imp
   }
   if (ParParams) {
     parallel::stopCluster(cl)
   }
   names(imp) <- paste0("imp", 1:m)
-  
+
+
   imp <- lapply(imp, final.transform, data,
-                ODlevels = dataOD$ODlevels,
-                rownamesDataset = rownames(dataOD$OD),
-                nrowsDataset = nrow(dataOD$OD), nr = dataOD$nr,
-                nc = dataOD$nc, rowsNA = dataOD$rowsNA, mi = m
+    ODlevels = dataOD$ODlevels,
+    rownamesDataset = rownames(dataOD$OD),
+    nrowsDataset = nrow(dataOD$OD), nr = dataOD$nr,
+    nc = dataOD$nc, rowsNA = dataOD$rowsNA, mi = m
   )
 
   if (timing == TRUE) {
@@ -232,49 +307,26 @@ seqimpute <- function(data, var = NULL, np = 1, nf = 1, m = 5, niter=1, timing =
     data = data, imp = imp, m = m, method = method,
     np = np, nf = nf, regr = regr, call = call
   )
-  
+
   oldClass(seqimpobj) <- "seqimp"
-  
-  
+
+
   seqimpobj
 }
 
 
-seqimpute.init <- function(data, end.impute){
-  if(end.impute==TRUE){
-    for(j in 1:ncol(data)){
-      tt <- is.na(data[,j])
-      lev <- unique(na.omit(data[,j]))
-      data[tt,j] <- sample(lev,size=sum(tt),replace=TRUE)
-    }
-  }else{
-    ttn <- is.na(data[,ncol(data)])
-    for(j in (ncol(data)-1):1){
-      tt <- is.na(data[,j])
-      if(length(ttn)>1){
-        ttn <- intersect(ttn,tt)
-        tt <- setdiff(tt,ttn)
-      }
-      lev <- unique(na.omit(data[,j]))
-      data[tt,j] <- sample(lev,size=sum(tt),replace=TRUE)
-    }
-  }
-  
-  return(data)
-}
-
 mict <- function(
-    dataOD, imp, imporder = NULL, np = 1, nf = 1, m = 1,
+    dataOD, imporder = NULL, np = 1, nf = 1, m = 1,
     regr = "multinom", nfi = 1, npt = 1, available = TRUE, pastDistrib = FALSE,
     futureDistrib = FALSE, verbose = TRUE, ...) {
+  imp <- dataOD$ODi
   noise <- 0
-  
-  dataOD$OD <- imp
-  
+
   if (imporder$maxInternal != 0) {
     if (verbose == TRUE) {
       cat("  Imputation of the internal gaps...\n")
     }
+
     imp <- mict.internal(
       data = dataOD, imp, MaxGap = imporder$maxInternal,
       regr = regr, nc = dataOD$nc, np = np, nf = nf,
@@ -285,10 +337,8 @@ mict <- function(
       REFORD_L = imporder$internal, noise = dataOD$noise,
       verbose = verbose, ...
     )
-    dataOD$OD <- imp
-    
   }
-  
+
   if (imporder$maxInitial != 0) {
     if (verbose == TRUE) {
       cat("  Imputation of the initial gaps...\n")
@@ -302,8 +352,6 @@ mict <- function(
       ncot = dataOD$ncot, nfi = nfi, regr = regr, k = dataOD$k,
       available = available, noise = dataOD$noise, ...
     )
-    dataOD$OD <- imp
-    
   }
   if (imporder$maxTerminal != 0) {
     if (verbose == TRUE) {
@@ -316,8 +364,6 @@ mict <- function(
       nr = dataOD$nr, nc = dataOD$nc, ud = dataOD$ud,
       available = available, k = dataOD$k, noise = dataOD$noise, ...
     )
-    dataOD$OD <- imp
-    
   }
 
   if (max(imporder$maxLeftSLG) > 0) {
@@ -332,8 +378,6 @@ mict <- function(
       noise = dataOD$noise, available = available,
       REFORD_L = imporder$SLGleft, MaxGap = imporder$maxLeftSLG, ...
     )
-    dataOD$OD <- imp
-    
   }
   if (max(imporder$maxRightSLG) > 0) {
     if (verbose == TRUE) {
@@ -347,8 +391,6 @@ mict <- function(
       noise = dataOD$noise, available = available,
       REFORD_L = imporder$SLGright, MaxGap = imporder$maxRightSLG, ...
     )
-    dataOD$OD <- imp
-    
   }
 
   if (max(imporder$maxBothSLG) > 0) {
@@ -366,8 +408,6 @@ mict <- function(
           REFORD_L = imporder$SLGboth[[h]],
           MaxGap = imporder$maxBothSLG[h, ], ...
         )
-        dataOD$OD <- imp
-        
       }
     }
   }
