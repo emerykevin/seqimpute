@@ -170,11 +170,11 @@ in more accurate imputed values.
 # Default multiple imputation of the trajectories of game addiction with the
 # MICT algorithm
 
-\dontrun{
+
 set.seed(5)
 imp1 <- seqimpute(data = gameadd, var = 1:4)
 
-
+\donttest{
 # Default multiple imputation with the MICT-timing algorithm
 set.seed(3)
 imp2 <- seqimpute(data = gameadd, var = 1:4, timing = TRUE)

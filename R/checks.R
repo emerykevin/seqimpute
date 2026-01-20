@@ -12,7 +12,7 @@ check.deprecated <- function(...) {
       warning(msg)
     }
   }
-
+  
   deleted.args <- c("mice.return", "include")
   wrn <- deleted.args %in% nms
   if (any(wrn)) {
@@ -24,7 +24,7 @@ check.deprecated <- function(...) {
       warning(msg)
     }
   }
-
+  
   invisible(NULL)
 }
 
@@ -69,9 +69,9 @@ check.data <- function(OD, CO, COt, var) {
   data <- list()
   data["nco"] <- compute.ncol(CO)
   data["ncot"] <- compute.ncol(COt)
-
+  
   data$ncot <- check.ncot(data$ncot, ncol(OD))
-
+  
   data$rowsNA <- rows.allmiss(OD)
   if (length(data$rowsNA) > 0) {
     data$OD <- OD[-data$rowsNA, ]
@@ -87,12 +87,12 @@ check.data <- function(OD, CO, COt, var) {
     data$COt <- COt
   }
   data[c(
-    "OD", "ODi", "ODClass", "ODlevels", "k",
+    "OD", "ODi", "ODlevels", "k",
     "nr", "nc"
   )] <- check.traj(data$OD)
-
+  
   data$COtsample <- compute.COtsample(data$COt, data$ncot, data$nr, data$nc)
-
+  
   return(data)
 }
 
@@ -152,12 +152,12 @@ compute.COtsample <- function(COt, ncot, nr, nc) {
   COtsample <- vector()
   if (ncot > 0) {
     COtsample <- as.data.frame(matrix(nrow = nr, ncol = 0))
-
+    
     for (d in 1:(ncot / nc)) {
       COtsample <- cbind(COtsample, COt[, 1 + (d - 1) * nc])
     }
   }
-
+  
   return(COtsample)
 }
 
@@ -165,35 +165,34 @@ compute.COtsample <- function(COt, ncot, nr, nc) {
 check.traj <- function(OD) {
   nc <- ncol(OD)
   nr <- nrow(OD)
-  ODClass <- class(OD[1, 1])
-
-  if ((ODClass != "factor") & (ODClass != "character")) {
+  
+  if (!inherits(OD[1, 1], c("factor", "character"))) {
     stop("/!\\ The class of the variables contained in your original dataset
            should be either 'factor' or 'character'")
   }
-
+  
   #*************************************
   ODlevels <- vector()
-
+  
   ODlevels <- sort(unique(as.vector(as.matrix(OD))))
   k <- length(ODlevels)
   OD <- as.data.frame(sapply(OD, mapvalues,
-    from = ODlevels,
-    to = as.character(as.vector(1:length(ODlevels)))
+                             from = ODlevels,
+                             to = as.character(as.vector(1:length(ODlevels)))
   ))
-
+  
   OD <- apply(as.matrix(OD), 2, as.numeric)
-
-
+  
+  
   ODi <- OD
-
-  if (ODClass == "factor") {
+  
+  if (inherits(OD[1, 1], "factor")) {
     for (j in 1:nc) {
       ODi[, j] <- factor(x = OD[, j], levels = c(1:k))
     }
   }
-
-  return(list(OD, ODi, ODClass, ODlevels, k, nr, nc))
+  
+  return(list(OD, ODi, ODlevels, k, nr, nc))
 }
 
 
@@ -208,14 +207,14 @@ check.cores <- function(ncores, available, m) {
         min(available - 1, m)
       ))
     }
-
+    
     if (ncores > m) {
       warning(paste(
         "'ncores' exceeds the number of imputations, and is set to",
         min(available - 1, m)
       ))
     }
-
+    
     ncores <- min(available - 1, m, ncores)
   }
   ncores

@@ -75,28 +75,23 @@
 #' @export
 seqTrans <- function(data, var = NULL, trans) {
   data <- dataxtract(data, var)
-
-
+  
+  
   impTrans <- trans
   nr <- nrow(data)
   nc <- ncol(data)
-
-
-
-  dataClass <- class(data[1, 1])
-  if ((dataClass != "factor") & (dataClass != "character") &
-    (dataClass != "numeric")) {
+  
+  if (!inherits(data[1, 1], c("factor", "character", "numeric"))) {
     stop("/!\\ The class of the variables contained in your original dataset
          should be either 'factor', 'character', or 'numeric'")
   }
-
-
-  if (dataClass == "factor" | dataClass == "character") {
+  
+  if (inherits(data[1, 1], c("factor", "character"))) {
     k <- length(sort(unique(as.vector(as.matrix(data)))))
   } else {
     k <- max(data)
   }
-
+  
   i <- 1
   numbOfNAFilledLines <- 0
   while (i <= nrow(data)) {
@@ -107,8 +102,8 @@ seqTrans <- function(data, var = NULL, trans) {
     i <- i + 1
   }
   nr <- nrow(data)
-
-
+  
+  
   for (i in 1:length(impTrans)) {
     if (!str_detect(impTrans[i], "->")) {
       stop("/!\\ Warning, you should construct your transition(s) vector trans
@@ -120,15 +115,15 @@ seqTrans <- function(data, var = NULL, trans) {
     locSpike <- str_locate(impTrans[i], ">")
     secondState <- substr(impTrans[i], locSpike + 1, nchar(impTrans[1]))
   }
-
+  
   dashes <- replicate(nc, "->")
   CharAndDashes <- function(data) {
     mytestChar <- paste(as.vector(rbind(data, dashes)), collapse = "")
   }
   dataCharAndDashes <- apply(data, 1, CharAndDashes)
-
-
-
+  
+  
+  
   countImpTrans <- function(dataCharAndDashes) {
     str_count(dataCharAndDashes, pattern = paste0("(?=", impTrans, ")"))
   }
@@ -138,24 +133,24 @@ seqTrans <- function(data, var = NULL, trans) {
   } else {
     numbOfImpTrans <- sum(numbOfImpTransByRow)
   }
-
+  
   if (sum(numbOfImpTrans) == 0) {
     message("Your dataset has no impossible transitions!")
-
+    
     seqTransList <- matrix(0, 0, 2)
     colnames(seqTransList) <- c("row", "col")
-
+    
     return(seqTransList)
   }
-
+  
   if (length(impTrans) == 1) {
     numbOfImpTransByRow <- t(as.matrix(numbOfImpTransByRow))
   }
-
-
-
-
-
+  
+  
+  
+  
+  
   startLocMat <- matrix(NA, nrow = length(impTrans), ncol = nrow(data))
   for (i in 1:length(impTrans)) {
     Tmplist <- str_locate_all(dataCharAndDashes, paste0("(?=", impTrans[i], ")"))
@@ -169,14 +164,14 @@ seqTrans <- function(data, var = NULL, trans) {
       }
     }
   }
-
-
-
-
+  
+  
+  
+  
   Numextract <- function(string) {
     unlist(regmatches(string, gregexpr("[[:digit:]]+\\.*[[:digit:]]*", string)))
   }
-
+  
   GetRealColPosition <- function(dataCharAndDashes, RowPos, ColPos) {
     dataCharAndDashesSubstring <- substr(dataCharAndDashes[RowPos], 1, ColPos)
     realColPosition <- str_count(dataCharAndDashesSubstring, pattern = ">") + 1
@@ -184,7 +179,7 @@ seqTrans <- function(data, var = NULL, trans) {
   }
   list_rows <- list()
   list_cols <- list()
-
+  
   for (i in 1:length(impTrans)) {
     if (numbOfImpTrans[i] > 0) {
       TmpRows <- c()
@@ -221,38 +216,38 @@ seqTrans <- function(data, var = NULL, trans) {
       list_cols[[i]] <- TmpCols
     }
   }
-
-
+  
+  
   MaxNumTransitions <- max(sapply(list_cols, function(x) length(x)))
-
+  
   rowMat <- matrix(NA, length(impTrans), MaxNumTransitions)
   colMat <- matrix(NA, length(impTrans), MaxNumTransitions)
-
+  
   for (i in 1:length(impTrans)) {
     if (numbOfImpTrans[i] > 0) {
       rowMat[i, 1:length(list_rows[[i]])] <- list_rows[[i]]
       colMat[i, 1:length(list_cols[[i]])] <- list_cols[[i]]
     }
   }
-
+  
   if (length(impTrans) > 1) {
     rowMat <- rowMat[rowSums(!is.na(rowMat)) > 0, ]
     colMat <- colMat[rowSums(!is.na(colMat)) > 0, ]
   }
-
+  
   impTransOverview <- data.frame(
     c(impTrans, "", "Total:"),
     c(numbOfImpTrans, "", sum(numbOfImpTrans))
   )
   colnames(impTransOverview) <- c("Transitions", "Occurence")
-
+  
   if (length(rowMat) > 0) {
     seqTransList <- matrix(0, length(rowMat), 2)
     seqTransList[, 1] <- rowMat
     seqTransList[, 2] <- colMat
   }
   colnames(seqTransList) <- c("row", "col")
-
-
+  
+  
   return(seqTransList)
 }

@@ -83,7 +83,7 @@ repeated for the sequence.
 # Generate MCAR missing data on the mvad dataset
 # from the TraMineR package
 
-\dontrun{
+\donttest{
 data(mvad, package = "TraMineR")
 mvad.miss <- seqaddNA(mvad, var = 17:86)
 

@@ -136,11 +136,11 @@
 #' # Default multiple imputation of the trajectories of game addiction with the
 #' # MICT algorithm
 #'
-#' \dontrun{
+#' 
 #' set.seed(5)
 #' imp1 <- seqimpute(data = gameadd, var = 1:4)
 #'
-#'
+#' \donttest{
 #' # Default multiple imputation with the MICT-timing algorithm
 #' set.seed(3)
 #' imp2 <- seqimpute(data = gameadd, var = 1:4, timing = TRUE)
@@ -189,7 +189,7 @@ seqimpute <- function(data, var = NULL, np = 1, nf = 1, m = 5, timing = FALSE,
                       futureDistrib = FALSE, ...) {
   call <- match.call()
   check.deprecated(...)
-
+  
   if (inherits(data, "stslist")) {
     valuesNA <- c(attr(data, "nr"), attr(data, "void"))
     data <- data.frame(data)
@@ -197,7 +197,7 @@ seqimpute <- function(data, var = NULL, np = 1, nf = 1, m = 5, timing = FALSE,
   } else {
     covariates <- covxtract(data, covariates)
     time.covariates <- covxtract(data, time.covariates)
-
+    
     data <- dataxtract(data, var)
   }
   dataOD <- check.data(data, covariates, time.covariates, var)
@@ -207,27 +207,27 @@ seqimpute <- function(data, var = NULL, np = 1, nf = 1, m = 5, timing = FALSE,
     }
     return(dataOD$OD)
   }
-
+  
   tmp <- check.predictors(np, nf, npt, nfi)
   np <- tmp$np
   nf <- tmp$nf
   nfi <- tmp$nfi
   npt <- tmp$npt
-
+  
   regr <- check.regr(regr)
-
+  
   imporder <- compute.order(
     dataOD$OD, dataOD$nr, dataOD$nc, np, nf, npt, nfi,
     end.impute
   )
-
+  
   if (ParExec) {
     available.cores <- parallelly::availableCores(logical = TRUE)
     ncores <- check.cores(ncores, available.cores, m)
   } else {
     ncores <- 1
   }
-
+  
   if (ncores > 1) {
     cl <- parallel::makeCluster(ncores)
     doSNOW::registerDoSNOW(cl)
@@ -237,19 +237,19 @@ seqimpute <- function(data, var = NULL, np = 1, nf = 1, m = 5, timing = FALSE,
     pb <- txtProgressBar(max = m, style = 3)
     progress <- function(n) setTxtProgressBar(pb, n)
     opts <- list(progress = progress)
-
+    
     ParParams <- TRUE
   } else {
     if (SetRNGSeed) {
       set.seed(SetRNGSeed)
     }
-
+    
     foreach::registerDoSEQ()
     opts <- NULL
-
+    
     ParParams <- FALSE
   }
-
+  
   o <- NULL
   imp <- foreach(
     o = 1:m, .inorder = TRUE,
@@ -257,31 +257,31 @@ seqimpute <- function(data, var = NULL, np = 1, nf = 1, m = 5, timing = FALSE,
   ) %dopar% {
     if (!ParParams) {
       if (verbose == TRUE) {
-        cat("iteration :", o, "/", m, "\n")
+        cat("imputation :", o, "/", m, "\n")
       }
     }
-
-
+    
+    
     if (timing == FALSE) {
       imp <- mict(dataOD,
-        imporder = imporder,
-        np = np, nf = nf, m = m, regr = regr,
-        nfi = nfi, npt = npt,
-        available = available,
-        pastDistrib = pastDistrib,
-        futureDistrib = futureDistrib,
-        verbose = verbose, ...
+                  imporder = imporder,
+                  np = np, nf = nf, m = m, regr = regr,
+                  nfi = nfi, npt = npt,
+                  available = available,
+                  pastDistrib = pastDistrib,
+                  futureDistrib = futureDistrib,
+                  verbose = verbose, ...
       )
     } else {
       imp <- mict.timing(dataOD,
-        imporder = imporder,
-        np = np, nf = nf, m = m, regr = regr,
-        nfi = nfi, npt = npt,
-        available = available,
-        pastDistrib = pastDistrib,
-        futureDistrib = futureDistrib,
-        verbose = verbose,
-        frame.radius = frame.radius, ...
+                         imporder = imporder,
+                         np = np, nf = nf, m = m, regr = regr,
+                         nfi = nfi, npt = npt,
+                         available = available,
+                         pastDistrib = pastDistrib,
+                         futureDistrib = futureDistrib,
+                         verbose = verbose,
+                         frame.radius = frame.radius, ...
       )
     }
   }
@@ -289,16 +289,15 @@ seqimpute <- function(data, var = NULL, np = 1, nf = 1, m = 5, timing = FALSE,
     parallel::stopCluster(cl)
   }
   names(imp) <- paste0("imp", 1:m)
-
-
-  imp <- lapply(imp, final.transform,
-    ODClass = dataOD$ODClass,
-    ODlevels = dataOD$ODlevels,
-    rownamesDataset = rownames(dataOD$OD),
-    nrowsDataset = nrow(dataOD$OD), nr = dataOD$nr,
-    nc = dataOD$nc, rowsNA = dataOD$rowsNA, mi = m
+  
+  
+  imp <- lapply(imp, final.transform, data,
+                ODlevels = dataOD$ODlevels,
+                rownamesDataset = rownames(dataOD$OD),
+                nrowsDataset = nrow(dataOD$OD), nr = dataOD$nr,
+                nc = dataOD$nc, rowsNA = dataOD$rowsNA, mi = m
   )
-
+  
   if (timing == TRUE) {
     method <- "MICT-timing"
   } else {
@@ -308,10 +307,10 @@ seqimpute <- function(data, var = NULL, np = 1, nf = 1, m = 5, timing = FALSE,
     data = data, imp = imp, m = m, method = method,
     np = np, nf = nf, regr = regr, call = call
   )
-
+  
   oldClass(seqimpobj) <- "seqimp"
-
-
+  
+  
   seqimpobj
 }
 
@@ -322,12 +321,12 @@ mict <- function(
     futureDistrib = FALSE, verbose = TRUE, ...) {
   imp <- dataOD$ODi
   noise <- 0
-
+  
   if (imporder$maxInternal != 0) {
     if (verbose == TRUE) {
-      print("Imputation of the internal gaps...")
+      cat("  Imputation of the internal gaps...\n")
     }
-
+    
     imp <- mict.internal(
       data = dataOD, imp, MaxGap = imporder$maxInternal,
       regr = regr, nc = dataOD$nc, np = np, nf = nf,
@@ -339,79 +338,79 @@ mict <- function(
       verbose = verbose, ...
     )
   }
-
+  
   if (imporder$maxInitial != 0) {
     if (verbose == TRUE) {
-      print("Imputation of the initial gaps...")
+      cat("  Imputation of the initial gaps...\n")
     }
-
+    
     imp <- mict.initial(dataOD, imp,
-      futureDistrib = futureDistrib,
-      REFORDI_L = imporder$initial,
-      MaxInitGapSize = imporder$maxInitial, nr = dataOD$nr,
-      nc = dataOD$nc, ud = dataOD$ud, nco = dataOD$nco,
-      ncot = dataOD$ncot, nfi = nfi, regr = regr, k = dataOD$k,
-      available = available, noise = dataOD$noise, ...
+                        futureDistrib = futureDistrib,
+                        REFORDI_L = imporder$initial,
+                        MaxInitGapSize = imporder$maxInitial, nr = dataOD$nr,
+                        nc = dataOD$nc, ud = dataOD$ud, nco = dataOD$nco,
+                        ncot = dataOD$ncot, nfi = nfi, regr = regr, k = dataOD$k,
+                        available = available, noise = dataOD$noise, ...
     )
   }
   if (imporder$maxTerminal != 0) {
     if (verbose == TRUE) {
-      print("Imputation of the terminal gaps...")
+      cat("  Imputation of the terminal gaps...\n")
     }
     imp <- mict.terminal(dataOD, imp,
-      MaxTermGapSize = imporder$maxTerminal,
-      REFORDT_L = imporder$terminal, pastDistrib = pastDistrib,
-      regr = regr, npt = npt, nco = dataOD$nco, ncot = dataOD$ncot,
-      nr = dataOD$nr, nc = dataOD$nc, ud = dataOD$ud,
-      available = available, k = dataOD$k, noise = dataOD$noise, ...
+                         MaxTermGapSize = imporder$maxTerminal,
+                         REFORDT_L = imporder$terminal, pastDistrib = pastDistrib,
+                         regr = regr, npt = npt, nco = dataOD$nco, ncot = dataOD$ncot,
+                         nr = dataOD$nr, nc = dataOD$nc, ud = dataOD$ud,
+                         available = available, k = dataOD$k, noise = dataOD$noise, ...
     )
   }
-
+  
   if (max(imporder$maxLeftSLG) > 0) {
     if (verbose == TRUE) {
-      print("Imputation of the left-hand side SLG...")
+      cat("  Imputation of the left-hand side SLG...\n")
     }
     imp <- mict.leftSLG(dataOD, imp,
-      pastDistrib = pastDistrib,
-      futureDistrib = futureDistrib, regr = regr, np = np,
-      nr = dataOD$nr, nf = nf, nc = dataOD$nc,
-      ud = dataOD$ud, ncot = dataOD$ncot, nco = dataOD$nco, k = dataOD$k,
-      noise = dataOD$noise, available = available,
-      REFORD_L = imporder$SLGleft, MaxGap = imporder$maxLeftSLG, ...
+                        pastDistrib = pastDistrib,
+                        futureDistrib = futureDistrib, regr = regr, np = np,
+                        nr = dataOD$nr, nf = nf, nc = dataOD$nc,
+                        ud = dataOD$ud, ncot = dataOD$ncot, nco = dataOD$nco, k = dataOD$k,
+                        noise = dataOD$noise, available = available,
+                        REFORD_L = imporder$SLGleft, MaxGap = imporder$maxLeftSLG, ...
     )
   }
   if (max(imporder$maxRightSLG) > 0) {
     if (verbose == TRUE) {
-      print("Imputation of the right-hand side SLG...")
+      cat("  Imputation of the right-hand side SLG...\n")
     }
     imp <- mict.rightSLG(dataOD, imp,
-      pastDistrib = pastDistrib,
-      futureDistrib = futureDistrib, regr = regr, np = np,
-      nr = dataOD$nr, nf = nf, nc = dataOD$nc,
-      ud = dataOD$ud, ncot = dataOD$ncot, nco = dataOD$nco, k = dataOD$k,
-      noise = dataOD$noise, available = available,
-      REFORD_L = imporder$SLGright, MaxGap = imporder$maxRightSLG, ...
+                         pastDistrib = pastDistrib,
+                         futureDistrib = futureDistrib, regr = regr, np = np,
+                         nr = dataOD$nr, nf = nf, nc = dataOD$nc,
+                         ud = dataOD$ud, ncot = dataOD$ncot, nco = dataOD$nco, k = dataOD$k,
+                         noise = dataOD$noise, available = available,
+                         REFORD_L = imporder$SLGright, MaxGap = imporder$maxRightSLG, ...
     )
   }
-
+  
   if (max(imporder$maxBothSLG) > 0) {
     if (verbose == TRUE) {
-      print("Imputation of the both-hand side SLG...")
+      cat("  Imputation of the both-hand side SLG...\n")
     }
     for (h in 2:np) {
       if (max(imporder$maxBothSLG[h, ]) > 0) {
         imp <- mict.rightSLG(dataOD, imp,
-          pastDistrib = pastDistrib,
-          futureDistrib = futureDistrib, regr = regr, np = h - 1,
-          nr = dataOD$nr, nf = nf, nc = dataOD$nc, ud = dataOD$ud,
-          ncot = dataOD$ncot, nco = dataOD$nco, k = dataOD$k,
-          noise = dataOD$noise, available = available,
-          REFORD_L = imporder$SLGboth[[h]],
-          MaxGap = imporder$maxBothSLG[h, ], ...
+                             pastDistrib = pastDistrib,
+                             futureDistrib = futureDistrib, regr = regr, np = h - 1,
+                             nr = dataOD$nr, nf = nf, nc = dataOD$nc, ud = dataOD$ud,
+                             ncot = dataOD$ncot, nco = dataOD$nco, k = dataOD$k,
+                             noise = dataOD$noise, available = available,
+                             REFORD_L = imporder$SLGboth[[h]],
+                             MaxGap = imporder$maxBothSLG[h, ], ...
         )
       }
     }
   }
-
+  
   return(imp)
 }

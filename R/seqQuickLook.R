@@ -34,14 +34,14 @@
 
 seqQuickLook <- function(data, var = NULL, np = 1, nf = 1) {
   data <- dataxtract(data, var)
-
+  
   if (inherits(data, "stslist")) {
     valuesNA <- attr(data, "nr")
     data <- data.frame(data)
     data[data == valuesNA] <- NA
   }
-
-
+  
+  
   MDGapsChart <- matrix(0, 6, 4)
   MDGapsChart <- as.data.frame(MDGapsChart)
   rownames(MDGapsChart) <- c(
@@ -49,34 +49,31 @@ seqQuickLook <- function(data, var = NULL, np = 1, nf = 1) {
     "LEFT-hand side SLG", "RIGHT-hand side SLG", "BOTH-hand side SLG"
   )
   colnames(MDGapsChart) <- c("MinGapSize", "MaxGapSize", "numbOfGaps", "sumNAGaps")
-
+  
   if (sum(is.na(data)) == 0) {
     return(MDGapsChart)
   }
-
-  dataClass <- class(data[1, 1])
-  if ((dataClass != "factor") & (dataClass != "character") &
-    (dataClass != "numeric")) {
+  
+  if (!inherits(data[1, 1], c("factor", "character", "numeric"))){
     stop("/!\\ The class of the variables contained in your original dataset
-         should be either 'factor','character' or 'numeric'")
+         should be either 'factor', 'character', or 'numeric'")
   }
-
-
-  if (dataClass == "factor" | dataClass == "character") {
+  
+  if (inherits(data[1, 1], c("factor", "character"))) {
     k <- length(sort(unique(as.vector(as.matrix(data)))))
   } else {
     k <- max(data)
   }
-
+  
   rowsNA <- rows.allmiss(data)
-
+  
   nr <- nrow(data)
   nc <- ncol(data)
-
+  
   imporder <- compute.order(data, nr, nc, np, nf, 1, 1,
-    end.impute = TRUE
+                            end.impute = TRUE
   )
-
+  
   if (imporder$maxInternal > 0) {
     numGapsInternal <- compute.num.gaps(imporder$internal, imporder$maxInternal)
     MDGapsChart[1, 1] <- min(which(numGapsInternal > 0))
@@ -86,7 +83,7 @@ seqQuickLook <- function(data, var = NULL, np = 1, nf = 1) {
   } else {
     MDGapsChart[1, ] <- 0
   }
-
+  
   if (imporder$maxInitial > 0) {
     numGapsInitial <- compute.num.gaps(imporder$initial, imporder$maxInitial)
     MDGapsChart[2, 1] <- min(which(numGapsInitial > 0))
@@ -96,7 +93,7 @@ seqQuickLook <- function(data, var = NULL, np = 1, nf = 1) {
   } else {
     MDGapsChart[2, ] <- 0
   }
-
+  
   if (imporder$maxTerminal > 0) {
     numGapsTerminal <- compute.num.gaps(imporder$terminal, imporder$maxTerminal)
     MDGapsChart[3, 1] <- min(which(numGapsTerminal > 0))
@@ -106,7 +103,7 @@ seqQuickLook <- function(data, var = NULL, np = 1, nf = 1) {
   } else {
     MDGapsChart[3, ] <- 0
   }
-
+  
   if (max(imporder$maxLeftSLG) > 0) {
     numGapsSLG <- matrix(0, np, max(imporder$maxLeftSLG))
     for (h in 2:np) {
@@ -121,7 +118,7 @@ seqQuickLook <- function(data, var = NULL, np = 1, nf = 1) {
   } else {
     MDGapsChart[4, ] <- 0
   }
-
+  
   if (max(imporder$maxRightSLG) > 0) {
     numGapsSLG <- matrix(0, nc - 1, max(imporder$maxRightSLG))
     for (h in (nc - 1):(nc - nf + 1)) {
@@ -129,7 +126,7 @@ seqQuickLook <- function(data, var = NULL, np = 1, nf = 1) {
         numGapsSLG[h, 1:imporder$maxRightSLG[h]] <- compute.num.gaps(imporder$SLGright[[h]], imporder$maxRightSLG[h])
       }
     }
-
+    
     MDGapsChart[5, 1] <- min(which(colSums(numGapsSLG) > 0))
     MDGapsChart[5, 2] <- max(imporder$maxRightSLG)
     MDGapsChart[5, 3] <- sum(numGapsSLG)
@@ -137,8 +134,8 @@ seqQuickLook <- function(data, var = NULL, np = 1, nf = 1) {
   } else {
     MDGapsChart[5, ] <- 0
   }
-
-
+  
+  
   if (max(imporder$maxBothSLG) > 0) {
     minGap <- max(imporder$maxBothSLG)
     sumGaps <- 0
@@ -147,10 +144,10 @@ seqQuickLook <- function(data, var = NULL, np = 1, nf = 1) {
       for (h in (nc - 1):(nc - nf + 1)) {
         if (imporder$maxBothSLG[g, h] > 0) {
           tmpGaps <- compute.num.gaps(imporder$SLGboth[[g]][[h]], imporder$maxBothSLG[g, h])
-
+          
           minGap <- min(minGap, min(which(tmpGaps > 0)))
           sumNumGaps <- sumNumGaps + sum(tmpGaps)
-
+          
           sumGaps <- sumGaps + sum(tmpGaps * (1:imporder$maxBothSLG[g, h]))
         }
       }
@@ -162,8 +159,8 @@ seqQuickLook <- function(data, var = NULL, np = 1, nf = 1) {
   } else {
     MDGapsChart[6, ] <- 0
   }
-
-
+  
+  
   return(MDGapsChart)
 }
 
