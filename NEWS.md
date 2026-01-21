@@ -1,3 +1,16 @@
+# seqimpute 2.2.1
+
+## Minor improvment and fixes
+* Internal checks for an object having a specific class were changed from is() 
+to inherits().
+
+* Summary, print and plot functions added for the seqimplic object.
+
+* Minor style change in the vignette.
+
+* Information printed by the seqimpute() function in the console was slightly
+modified.
+
 # seqimpute 2.2.0
 
 ## New features
@@ -130,8 +143,6 @@ built with the `TraMineR` package.
 
 * A `...` argument has been added to `seqimpute()` to pass named arguments to 
 the imputation functions.
-
-
 
 ## Bug fixes
 
